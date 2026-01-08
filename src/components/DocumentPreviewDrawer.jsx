@@ -1,13 +1,12 @@
 import React, { useState } from "react";
 import {
   X,
+  Database,
   User,
   Calendar,
-  Database,
+  Info,
   FileText,
   CheckCircle,
-  Info,
-  ShieldCheck,
 } from "lucide-react";
 
 export default function DocumentPreviewDrawer({
@@ -19,8 +18,6 @@ export default function DocumentPreviewDrawer({
 
   if (!document) return null;
 
-  // --- DYNAMIC BACKEND URL LOGIC ---
-  // Detects if we are on localhost or Render
   const API_BASE_URL =
     window.location.hostname === "localhost"
       ? "http://localhost:8000"
@@ -32,61 +29,47 @@ export default function DocumentPreviewDrawer({
 
   return (
     <>
+      {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] animate-in fade-in duration-300"
         onClick={onClose}
       />
 
+      {/* Drawer */}
       <div
         className={`fixed top-0 right-0 h-full w-[90%] max-w-7xl shadow-2xl z-[201] flex animate-in slide-in-from-right duration-500 ease-out overflow-hidden ${
           isDarkMode ? "bg-[#0B0F1A] text-white" : "bg-white text-slate-900"
         }`}
       >
-        {/* Main Content: PDF Viewer */}
+        {/* Main Preview */}
         <div className="flex-1 flex flex-col border-r border-slate-200 dark:border-white/10">
+          {/* Header */}
           <div className="p-6 border-b border-inherit flex justify-between items-center bg-inherit relative z-10">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 min-w-0">
               <button
                 onClick={onClose}
                 className="p-2 hover:bg-slate-500/10 rounded-full transition-colors"
               >
                 <X size={24} />
               </button>
-              <div className="flex flex-col">
-                <h2 className="text-xl font-bold truncate max-w-md">
-                  {document.name}
-                </h2>
-                <div className="flex items-center gap-2 mt-1">
-                  <ShieldCheck size={12} className="text-emerald-500" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                    O&M Verified Document
-                  </span>
-                </div>
-              </div>
+
+              <h2 className="text-xl font-bold truncate max-w-md">
+                {document.name}
+              </h2>
             </div>
-            <div className="flex gap-2">
-              <span
-                className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${
-                  isDarkMode
-                    ? "bg-white/5 border-white/10"
-                    : "bg-slate-100 border-slate-200"
-                }`}
-              >
-                ID: {document.id?.split("/").pop() || "N/A"}
-              </span>
-              <span className="px-4 py-1.5 rounded-full bg-[#4F6EF7] text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-500/20">
-                {document.cat}
-              </span>
-            </div>
+
+            <span className="px-4 py-1.5 rounded-full bg-[#4F6EF7] text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-500/20">
+              {document.cat}
+            </span>
           </div>
 
+          {/* PDF Viewer */}
           <div
             className={`flex-1 overflow-hidden p-4 md:p-8 flex justify-center ${
               isDarkMode ? "bg-black/40" : "bg-slate-100"
             }`}
           >
-            <div className="w-full h-full max-w-5xl shadow-2xl bg-white rounded-2xl overflow-hidden border border-slate-200 dark:border-white/5 relative">
-              {/* Iframe for PDF rendering */}
+            <div className="w-full h-full max-w-5xl shadow-2xl bg-white rounded-2xl overflow-hidden border border-slate-200 dark:border-white/5">
               <iframe
                 key={document.id}
                 src={previewUrl}
@@ -95,25 +78,15 @@ export default function DocumentPreviewDrawer({
               />
             </div>
           </div>
-
-          <div className="p-4 border-t border-inherit flex justify-between px-8 text-sm font-bold text-slate-500 bg-inherit">
-            <p className="uppercase tracking-widest text-[10px]">
-              {document.isLocal
-                ? "Local Preview Mode"
-                : "Cloud Auditor Stream active"}
-            </p>
-            <p className="uppercase tracking-widest text-[10px]">
-              Azure OpenAI Version 2025-01-01
-            </p>
-          </div>
         </div>
 
-        {/* Right Sidebar: Metadata */}
+        {/* Right Sidebar */}
         <div
           className={`w-80 shrink-0 flex flex-col ${
             isDarkMode ? "bg-[#0B0F1A]" : "bg-slate-50/50"
           }`}
         >
+          {/* Tabs */}
           <div className="flex p-3 gap-2 border-b border-slate-200 dark:border-white/10">
             <button
               onClick={() => setActiveTab("details")}
@@ -137,6 +110,7 @@ export default function DocumentPreviewDrawer({
             </button>
           </div>
 
+          {/* Content */}
           <div className="p-8 space-y-8 overflow-y-auto no-scrollbar">
             {activeTab === "details" ? (
               <>
@@ -152,7 +126,7 @@ export default function DocumentPreviewDrawer({
                     />
                     <DetailRow
                       icon={<User size={14} />}
-                      label="Auditor"
+                      label="Uploaded By"
                       value={document.user || "System"}
                     />
                     <DetailRow
@@ -163,30 +137,30 @@ export default function DocumentPreviewDrawer({
                   </div>
                 </div>
 
+                {/* Neutral Summary */}
                 <div
                   className={`p-5 rounded-2xl border ${
                     isDarkMode
-                      ? "bg-blue-500/5 border-blue-500/20"
-                      : "bg-blue-50 border-blue-100"
+                      ? "bg-slate-500/5 border-white/10"
+                      : "bg-white border-slate-200"
                   }`}
                 >
-                  <div className="flex items-center gap-2 text-[#4F6EF7] mb-3 font-bold text-[10px] uppercase tracking-widest">
-                    <Info size={14} /> AI Analysis Summary
+                  <div className="flex items-center gap-2 text-slate-500 mb-3 font-bold text-[10px] uppercase tracking-widest">
+                    <Info size={14} /> Summary
                   </div>
                   <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400 font-medium italic">
-                    "This {document.doc_type || "document"} is verified under
-                    the {document.cat} system.
+                    This {document.doc_type || "document"} belongs to the{" "}
+                    {document.cat} category.
                     {document.asset_hint
-                      ? ` References detected: ${document.asset_hint}.`
+                      ? ` Reference noted: ${document.asset_hint}.`
                       : ""}
-                    Document integrity check passed."
                   </p>
                 </div>
               </>
             ) : (
-              <div>
+              <>
                 <p className="text-[10px] font-black uppercase tracking-widest text-[#4F6EF7] mb-4">
-                  Azure Meta Tags
+                  Metadata
                 </p>
                 <div className="space-y-4">
                   <DetailRow
@@ -197,17 +171,17 @@ export default function DocumentPreviewDrawer({
                   />
                   <DetailRow
                     icon={<CheckCircle size={14} />}
-                    label="System"
+                    label="Category"
                     value={document.cat}
                   />
                   <DetailRow
                     icon={<Info size={14} />}
-                    label="Asset Hint"
+                    label="Reference"
                     value={document.asset_hint || "None"}
                     italic
                   />
                 </div>
-              </div>
+              </>
             )}
           </div>
         </div>
@@ -216,17 +190,18 @@ export default function DocumentPreviewDrawer({
   );
 }
 
-// Small helper component for sidebar rows
+/* Helper Row */
 function DetailRow({ icon, label, value, highlight, italic }) {
   return (
     <div className="flex justify-between items-center text-[11px]">
       <div className="flex items-center gap-2 text-slate-400">
-        {icon} <span>{label}</span>
+        {icon}
+        <span>{label}</span>
       </div>
       <span
-        className={`font-black ${highlight ? "text-[#4F6EF7]" : ""} ${
-          italic ? "italic" : ""
-        }`}
+        className={`font-black ${
+          highlight ? "text-[#4F6EF7]" : "text-slate-600 dark:text-slate-300"
+        } ${italic ? "italic" : ""}`}
       >
         {value || "—"}
       </span>
