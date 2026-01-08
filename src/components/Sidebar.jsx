@@ -10,7 +10,6 @@ import {
   Settings,
   LogOut,
   User,
-  Zap,
 } from "lucide-react";
 
 export default function Sidebar({ isCollapsed, setIsCollapsed, isDarkMode }) {
@@ -42,7 +41,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isDarkMode }) {
         isDarkMode ? "bg-black/40 border-white/10" : "bg-white border-slate-200"
       } backdrop-blur-xl border-r flex flex-col h-screen z-30 shrink-0 relative`}
     >
-      {/* Top Header Area */}
+      {/* Top Header */}
       <div
         className={`h-20 flex items-center px-4 mb-4 ${
           isCollapsed ? "justify-center" : "justify-between"
@@ -70,7 +69,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isDarkMode }) {
         )}
       </div>
 
-      {/* Navigation Links */}
+      {/* Navigation */}
       <nav className="flex-1 px-3 space-y-2">
         {menuItems.map((item) => (
           <NavLink
@@ -101,18 +100,6 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isDarkMode }) {
         ))}
       </nav>
 
-      {/* Connection Status Badge (New for Deployment) */}
-      {!isCollapsed && (
-        <div className="px-6 py-4">
-          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
-            <Zap size={12} className="text-emerald-500 animate-pulse" />
-            <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600">
-              Backend Connected
-            </span>
-          </div>
-        </div>
-      )}
-
       {/* Account Section */}
       <div
         className={`p-4 border-t ${
@@ -136,10 +123,10 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isDarkMode }) {
                     isDarkMode ? "text-white" : "text-slate-900"
                   }`}
                 >
-                  O&M Auditor
+                  User
                 </p>
                 <p className="text-[10px] text-slate-500 truncate">
-                  Azure Managed Instance
+                  User@virtualviewing.com
                 </p>
               </div>
 
@@ -153,7 +140,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isDarkMode }) {
           )}
         </div>
 
-        {/* Account Pop-up Menu */}
+        {/* Account Menu */}
         {showAccountMenu && !isCollapsed && (
           <div
             className={`absolute bottom-20 left-4 right-4 border rounded-2xl shadow-2xl p-2 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200 ${

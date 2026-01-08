@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, X, MessageSquare, ShieldCheck, Zap } from "lucide-react";
+import { Search, X, Zap } from "lucide-react";
 
 export default function Topbar({
   isAiOpen,
@@ -13,7 +13,6 @@ export default function Topbar({
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && searchQuery.trim() !== "") {
-      // Navigate to all-files to show filtered results
       navigate("/all-files");
     }
   };
@@ -26,7 +25,7 @@ export default function Topbar({
           : "bg-white border-slate-200 shadow-sm"
       }`}
     >
-      {/* Search Bar - Entry point for Azure Search Logic */}
+      {/* Search Bar */}
       <div className="flex-1 max-w-xl relative group">
         <Search
           className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${
@@ -43,7 +42,7 @@ export default function Topbar({
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Global audit search..."
+          placeholder="Search for Documents..."
           className={`w-full pl-12 pr-10 py-3 rounded-2xl outline-none border text-sm font-semibold transition-all ${
             isDarkMode
               ? "bg-white/5 border-white/10 text-white focus:bg-white/10 focus:border-[#4F6EF7]/50"
@@ -60,22 +59,16 @@ export default function Topbar({
         )}
       </div>
 
+      {/* Actions */}
       <div className="ml-6 flex items-center gap-6">
-        {/* Connection Status - Subtle Deployment UI */}
-        <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/5 border border-blue-500/10">
-          <ShieldCheck size={14} className="text-[#4F6EF7]" />
-          <span className="text-[10px] font-black uppercase tracking-widest text-[#4F6EF7]">
-            Azure Guard Active
-          </span>
-        </div>
-
         {/* AI Toggle Button */}
         {!isAiOpen && (
           <button
             onClick={() => setIsAiOpen(true)}
             className="flex items-center gap-2 bg-[#4F6EF7] text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-500/20 hover:bg-blue-600 active:scale-95 transition-all animate-in fade-in zoom-in duration-500"
           >
-            <Zap size={16} className="fill-current" /> Ask Auditor AI
+            <Zap size={16} className="fill-current" />
+            Ask AI
           </button>
         )}
       </div>
