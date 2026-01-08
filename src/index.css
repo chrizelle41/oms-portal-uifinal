@@ -1,0 +1,105 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Custom Scrollbar for Dark Mode */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.bg-clip-text {
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.prose {
+  margin: 0 !important;
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+.prose table {
+  display: table !important;
+  width: 100% !important;
+  min-width: 450px !important;
+  border-collapse: collapse;
+  table-layout: auto !important;
+}
+
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.prose td,
+.prose th {
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  padding: 8px 4px !important;
+  vertical-align: top;
+}
+
+.markdown-container {
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+.markdown-container table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.markdown-container th,
+.markdown-container td {
+  padding: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: left;
+  min-width: 120px;
+}
+
+.markdown-container th {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #60a5fa;
+  font-weight: 700;
+}
+
+.markdown-container p {
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
+.markdown-container strong {
+  color: #93c5fd;
+}
+
+.markdown-container ul,
+.markdown-container ol {
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.markdown-container table::-webkit-scrollbar {
+  height: 4px;
+}
+.markdown-container table::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+}
