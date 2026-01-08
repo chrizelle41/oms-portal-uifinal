@@ -26,7 +26,7 @@ import AssetDetailsPage from "./pages/AssetDetailsPage";
 const API_BASE_URL =
   window.location.hostname === "localhost"
     ? "http://localhost:8000"
-    : "https://oms-portal4.onrender.com";
+    : "https://oms-portal4-1.onrender.com";
 
 export default function App() {
   const [files, setFiles] = useState([]);
