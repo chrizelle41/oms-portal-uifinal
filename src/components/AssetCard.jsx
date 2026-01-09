@@ -1,5 +1,5 @@
 import React from "react";
-import { FileText, Star, Archive, RefreshCcw } from "lucide-react";
+import { FileText, Star, Archive, RefreshCcw, Cloud } from "lucide-react";
 
 export default function AssetCard({
   asset,
@@ -7,6 +7,9 @@ export default function AssetCard({
   onArchive,
   onUnarchive,
 }) {
+  // Azure Blob Storage uses folder_name as the primary identifier
+  const assetId = asset.folder_name || asset.id;
+
   const imageUrl =
     asset.img ||
     "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1000&auto=format&fit=crop";
@@ -28,7 +31,7 @@ export default function AssetCard({
         w-full
       "
     >
-      {/* Image */}
+      {/* Image Section */}
       <div className="h-44 relative overflow-hidden">
         <img
           src={imageUrl}
@@ -36,7 +39,14 @@ export default function AssetCard({
           className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
         />
 
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+
+        {/* Cloud Badge (Indicates Azure Sync) */}
+        <div className="absolute top-4 left-4 z-20">
+          <div className="bg-black/20 backdrop-blur-md border border-white/20 p-2 rounded-xl text-white/80">
+            <Cloud size={14} />
+          </div>
+        </div>
 
         {/* Actions */}
         <div className="absolute top-4 right-4 flex flex-col gap-2 z-20">
@@ -44,7 +54,7 @@ export default function AssetCard({
           <button
             onClick={(e) => {
               e.stopPropagation();
-              onFavorite(asset.id);
+              onFavorite(assetId);
             }}
             className={`p-3 rounded-2xl shadow-xl backdrop-blur-xl border border-white/10 transition-all active:scale-90 ${
               asset.isFavorite
@@ -60,7 +70,7 @@ export default function AssetCard({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onUnarchive(asset.id);
+                onUnarchive(assetId);
               }}
               className="p-3 rounded-2xl shadow-xl bg-black/40 text-white/60 hover:bg-[#4F6EF7] hover:text-white backdrop-blur-xl border border-white/10 transition-all active:scale-90"
               title="Restore"
@@ -82,19 +92,23 @@ export default function AssetCard({
         </div>
       </div>
 
-      {/* Content */}
+      {/* Content Section */}
       <div className="p-6 flex flex-col flex-1">
-        {/* Asset Name ONLY */}
         <h3 className="font-bold text-slate-900 dark:text-white text-lg truncate mb-6 group-hover:text-[#4F6EF7] transition-colors">
           {asset.name}
         </h3>
 
-        {/* Footer */}
-        <div className="mt-auto">
+        {/* Footer with Blob Doc Count */}
+        <div className="mt-auto flex items-center justify-between">
           <div className="inline-flex items-center gap-1.5 text-slate-500 text-[10px] font-black uppercase tracking-widest bg-slate-100 dark:bg-white/5 px-3 py-1.5 rounded-full">
             <FileText size={12} className="text-[#4F6EF7]" />
             {asset.docs || 0} Documents
           </div>
+
+          {/* Virtual Folder Identifier */}
+          <span className="text-[9px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-tighter">
+            ID: {asset.folder_name || "root"}
+          </span>
         </div>
       </div>
     </div>

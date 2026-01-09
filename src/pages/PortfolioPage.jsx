@@ -32,14 +32,17 @@ export default function PortfolioPage({
 
   const [chatPreviewDoc, setChatPreviewDoc] = useState(null);
 
+  // --- HANDLERS ---
+
   const handleOpenDocFromChat = async (docTitle) => {
     try {
       const response = await fetch(`${apiBase}/files`);
       const allFiles = await response.json();
       const cleanTitle = docTitle.toLowerCase().trim();
 
+      // Find match in Azure-synced file list
       const match = allFiles.find((f) => {
-        const fname = f.filename.toLowerCase();
+        const fname = (f.filename || f.name || "").toLowerCase();
         return (
           fname.includes(cleanTitle) ||
           cleanTitle.includes(fname.replace(".pdf", ""))
@@ -48,17 +51,21 @@ export default function PortfolioPage({
 
       if (match) {
         setChatPreviewDoc({
-          id: match.document_id,
-          name: match.filename,
-          cat: match.system || "Document",
-          doc_type: match.document_type || "General",
+          id: match.document_id || match.id,
+          name: match.filename || match.name,
+          cat: match.system || match.cat || "Document",
+          doc_type: match.document_type || match.doc_type || "General",
           date: match.date || "Verified",
           size: match.size || "N/A",
           isLocal: false,
+          // Important: Point to Azure SAS redirect endpoint
+          previewUrl:
+            match.previewUrl ||
+            `${apiBase}/preview/${match.document_id || match.id}`,
         });
       }
     } catch (err) {
-      console.error("Error opening document:", err);
+      console.error("Error opening document from chat:", err);
     }
   };
 
@@ -66,8 +73,7 @@ export default function PortfolioPage({
     if (isSyncing) return;
     setIsSyncing(true);
 
-    // FIX: Fallback to default image if user uploaded a local file (blob)
-    // or didn't provide one.
+    // Fallback image if blob preview is used
     const finalImageUrl =
       newAssetData.image && !newAssetData.image.startsWith("blob:")
         ? newAssetData.image
@@ -86,15 +92,19 @@ export default function PortfolioPage({
       const result = await response.json();
 
       if (result.status === "success") {
+        // Refresh portfolio to see the new Azure virtual folder card
         const refreshRes = await fetch(`${apiBase}/portfolio`);
         const updatedData = await refreshRes.json();
         setPortfolioData(updatedData);
+
         setIsAddModalOpen(false);
         setIsSyncing(false);
+
+        // Navigate using the folder name returned by Azure logic
         navigate(`/portfolio/${result.folder_name}`);
       }
     } catch (error) {
-      console.error("Creation failed:", error);
+      console.error("Asset creation failed:", error);
       setIsSyncing(false);
     }
   };
@@ -141,7 +151,7 @@ export default function PortfolioPage({
       <div className="h-full flex flex-col items-center justify-center text-slate-500">
         <Loader2 className="animate-spin mb-4" size={40} />
         <p className="font-black uppercase tracking-widest text-xs">
-          Syncing Portfolio...
+          Syncing Azure Portfolio...
         </p>
       </div>
     );
@@ -152,6 +162,7 @@ export default function PortfolioPage({
       className="flex flex-col h-full px-8 pb-20 overflow-y-auto relative"
       onClick={() => setOpenMenuId(null)}
     >
+      {/* Header */}
       <div className="flex justify-between items-end mb-10 mt-4 shrink-0">
         <div>
           <h1 className="text-4xl font-black dark:text-white text-slate-900 mb-3 tracking-tight">
@@ -200,7 +211,7 @@ export default function PortfolioPage({
         ))}
       </div>
 
-      {/* FIXED GRID: auto-fill prevents overlapping by forcing minimum width */}
+      {/* Grid: Auto-fill ensures no overlap during resize */}
       {filteredAssets.length > 0 ? (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6 mb-12">
           {filteredAssets.map((asset) => (
@@ -243,12 +254,11 @@ export default function PortfolioPage({
         </div>
       )}
 
-      {/* Modals & Drawers */}
+      {/* Side Panels */}
       <ChatDrawer
         isOpen={isChatOpen}
         setIsOpen={setIsChatOpen}
-        onAddAsset={() => setIsAddModalOpen(true)}
-        onOpenDoc={(title) => handleOpenDocFromChat(title)}
+        onOpenDoc={handleOpenDocFromChat}
         apiBase={apiBase}
       />
 

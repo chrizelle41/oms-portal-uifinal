@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { X, Database, User, Calendar, Info, FileText } from "lucide-react";
+import { X, Database, User, Calendar, Info, FileText, Cloud } from "lucide-react";
 
 export default function DocumentPreviewDrawer({
   document,
@@ -10,15 +10,18 @@ export default function DocumentPreviewDrawer({
 
   if (!document) return null;
 
-  // --- DYNAMIC BACKEND URL ---
+  // --- UPDATED FOR AZURE BLOB STORAGE ---
+  // We prioritize 'previewUrl' which contains the SAS Token from Azure.
+  // If it's a local upload (not yet in cloud), we use the localUrl.
+  // Otherwise, we fallback to the backend preview route.
   const API_BASE_URL =
     window.location.hostname === "localhost"
       ? "http://localhost:8000"
       : "https://oms-portal4-1.onrender.com";
 
-  const previewUrl = document.isLocal
+  const finalPreviewUrl = document.isLocal
     ? document.localUrl
-    : `${API_BASE_URL}/preview/${document.id}`;
+    : document.previewUrl || `${API_BASE_URL}/preview/${document.id}`;
 
   return (
     <>
@@ -46,9 +49,16 @@ export default function DocumentPreviewDrawer({
                 <X size={24} />
               </button>
 
-              <h2 className="text-xl font-bold truncate max-w-md">
-                {document.name}
-              </h2>
+              <div className="flex flex-col">
+                <h2 className="text-xl font-bold truncate max-w-md">
+                  {document.name}
+                </h2>
+                {/* Cloud Indicator */}
+                <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                   <Cloud size={12} className="text-blue-500" />
+                   Secure Azure Blob Preview
+                </div>
+              </div>
             </div>
 
             <span className="px-4 py-1.5 rounded-full bg-[#4F6EF7] text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-500/20">
@@ -63,10 +73,11 @@ export default function DocumentPreviewDrawer({
             }`}
           >
             <div className="w-full h-full max-w-5xl shadow-2xl bg-white rounded-2xl overflow-hidden border border-slate-200 dark:border-white/5">
+              {/* Use the final SAS Token URL here */}
               <iframe
                 key={document.id}
-                src={previewUrl}
-                title="Document Preview"
+                src={finalPreviewUrl}
+                title="Azure Blob Preview"
                 className="w-full h-full border-none"
               />
             </div>
@@ -98,8 +109,9 @@ export default function DocumentPreviewDrawer({
                   ? "bg-[#4F6EF7] text-white shadow-lg"
                   : "text-slate-400 hover:bg-slate-500/10"
               }`}
-            >
-              Metadata
+            ) : (
+              "Metadata"
+            )}
             </button>
           </div>
 
@@ -109,22 +121,22 @@ export default function DocumentPreviewDrawer({
               <>
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-[#4F6EF7] mb-4">
-                    File Details
+                    Cloud Metadata
                   </p>
                   <div className="space-y-4">
                     <DetailRow
                       icon={<Database size={14} />}
-                      label="File Size"
+                      label="Size"
                       value={document.size}
                     />
                     <DetailRow
-                      icon={<User size={14} />}
-                      label="Source"
-                      value={document.user || "System"}
+                      icon={<Cloud size={14} />}
+                      label="Storage"
+                      value="Azure Blob (om)"
                     />
                     <DetailRow
                       icon={<Calendar size={14} />}
-                      label="Last Modified"
+                      label="Synced"
                       value={document.date}
                     />
                   </div>
@@ -138,39 +150,35 @@ export default function DocumentPreviewDrawer({
                   }`}
                 >
                   <div className="flex items-center gap-2 text-slate-500 mb-3 font-bold text-[10px] uppercase tracking-widest">
-                    <Info size={14} /> Description
+                    <Info size={14} /> Audit Note
                   </div>
                   <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400 font-medium italic">
-                    This {document.doc_type || "document"} is part of the{" "}
-                    {document.cat} database.
-                    {document.asset_hint
-                      ? ` Cross-reference: ${document.asset_hint}.`
-                      : ""}
+                    This file is securely served via a Shared Access Signature (SAS).
+                    Access is logged for audit purposes.
                   </p>
                 </div>
               </>
             ) : (
               <>
                 <p className="text-[10px] font-black uppercase tracking-widest text-[#4F6EF7] mb-4">
-                  Properties
+                  Classification
                 </p>
                 <div className="space-y-4">
                   <DetailRow
                     icon={<FileText size={14} />}
-                    label="Type"
+                    label="Doc Type"
                     value={document.doc_type}
                     highlight
                   />
                   <DetailRow
                     icon={<Info size={14} />}
-                    label="Category"
+                    label="System"
                     value={document.cat}
                   />
                   <DetailRow
-                    icon={<Info size={14} />}
-                    label="Reference"
-                    value={document.asset_hint || "None"}
-                    italic
+                    icon={<Database size={14} />}
+                    label="Blob ID"
+                    value={document.id}
                   />
                 </div>
               </>
@@ -188,10 +196,10 @@ function DetailRow({ icon, label, value, highlight, italic }) {
     <div className="flex justify-between items-center text-[11px]">
       <div className="flex items-center gap-2 text-slate-400">
         {icon}
-        <span>{label}</span>
+        <span className="truncate max-w-[80px]">{label}</span>
       </div>
       <span
-        className={`font-black ${
+        className={`font-black truncate max-w-[120px] ${
           highlight ? "text-[#4F6EF7]" : "text-slate-600 dark:text-slate-300"
         } ${italic ? "italic" : ""}`}
       >

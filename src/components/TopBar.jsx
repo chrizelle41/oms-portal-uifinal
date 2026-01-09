@@ -1,6 +1,6 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
-import { Search, X, Zap } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Search, X, Zap, Cloud } from "lucide-react";
 
 export default function Topbar({
   isAiOpen,
@@ -10,10 +10,20 @@ export default function Topbar({
   setSearchQuery,
 }) {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Determine the search placeholder based on the current page
+  const isPortfolio = location.pathname.includes("portfolio");
+  const placeholder = isPortfolio
+    ? "Search Assets in om container..."
+    : "Search all Cloud Documents...";
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && searchQuery.trim() !== "") {
-      navigate("/all-files");
+      // If they search from anywhere, take them to the global files list
+      if (!location.pathname.includes("all-files")) {
+        navigate("/all-files");
+      }
     }
   };
 
@@ -42,21 +52,31 @@ export default function Topbar({
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Search for Documents..."
+          placeholder={placeholder}
           className={`w-full pl-12 pr-10 py-3 rounded-2xl outline-none border text-sm font-semibold transition-all ${
             isDarkMode
               ? "bg-white/5 border-white/10 text-white focus:bg-white/10 focus:border-[#4F6EF7]/50"
               : "bg-slate-50 border-slate-200 text-slate-900 focus:bg-white focus:border-[#4F6EF7]"
           }`}
         />
-        {searchQuery && (
-          <button
-            onClick={() => setSearchQuery("")}
-            className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 hover:bg-slate-500/10 rounded-full transition-colors"
-          >
-            <X size={14} className="text-slate-400" />
-          </button>
-        )}
+
+        {/* Right side indicators */}
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="p-1.5 hover:bg-slate-500/10 rounded-full transition-colors"
+            >
+              <X size={14} className="text-slate-400" />
+            </button>
+          )}
+          {!searchQuery && (
+            <Cloud
+              size={14}
+              className={isDarkMode ? "text-slate-700" : "text-slate-300"}
+            />
+          )}
+        </div>
       </div>
 
       {/* Actions */}

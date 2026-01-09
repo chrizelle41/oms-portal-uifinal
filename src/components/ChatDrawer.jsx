@@ -6,6 +6,7 @@ import {
   Loader2,
   FileText,
   Sparkles,
+  Cloud,
 } from "lucide-react";
 
 export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
@@ -14,7 +15,7 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
     {
       role: "ai",
       content:
-        "Hi! I am your O&M assistant. Ask me anything about your documents.",
+        "Hi! I am your O&M assistant. Ask me about document gaps or specific values in your files.",
     },
   ]);
   const [loading, setLoading] = useState(false);
@@ -29,6 +30,7 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
     if (!query.trim()) return;
     const userMsg = { role: "user", content: query };
     setMessages((prev) => [...prev, userMsg]);
+    const currentQuery = query;
     setQuery("");
     setLoading(true);
 
@@ -36,10 +38,10 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
       const response = await fetch(`${apiBase}/ask`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: query }),
+        body: JSON.stringify({ query: currentQuery }),
       });
 
-      if (!response.ok) throw new Error("AI Search Failed");
+      if (!response.ok) throw new Error("Cloud AI Search Failed");
 
       const data = await response.json();
       setMessages((prev) => [
@@ -53,7 +55,7 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
         {
           role: "ai",
           content:
-            "I'm having trouble connecting to the audit server. Please check your connection.",
+            "I'm having trouble connecting to the Azure Audit server. Please check your network and API key.",
         },
       ]);
     } finally {
@@ -61,9 +63,11 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
     }
   };
 
+  // --- RENDERING LOGIC FOR AUDIT CARDS ---
   const renderMessageContent = (content) => {
     if (!content) return null;
 
+    // Remove markdown headers and separator lines to keep UI clean
     const lines = content.split("\n").filter((line) => {
       const l = line.toLowerCase();
       return (
@@ -74,19 +78,20 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
     });
 
     return lines.map((line, i) => {
+      // Check if line is formatted as an audit card (Title | Status | Info)
       if (line.includes("|")) {
         const parts = line.split("|").map((s) => s.trim());
         if (parts.length >= 2) {
           const [title, status, info] = parts;
-          const isPresent = status.toLowerCase() === "present";
+          const isPresent = status.toLowerCase().includes("present");
 
           return (
             <div
               key={i}
               className={`my-3 p-4 rounded-2xl border shadow-sm transition-all animate-in zoom-in-95 duration-200 ${
                 isPresent
-                  ? "bg-[#F0F4FF] border-blue-100 dark:bg-white/5 dark:border-white/10"
-                  : "bg-red-50/50 border-red-100 dark:bg-red-900/10 dark:border-red-900/20"
+                  ? "bg-[#F0F4FF] border-blue-100 dark:bg-blue-500/5 dark:border-blue-500/20"
+                  : "bg-red-50 border-red-100 dark:bg-red-900/10 dark:border-red-900/20"
               }`}
             >
               <div className="flex flex-col gap-1">
@@ -101,10 +106,10 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
                     {title}
                   </span>
                   <span
-                    className={`text-[9px] px-1.5 py-0.5 rounded font-black uppercase tracking-tighter ${
+                    className={`text-[9px] px-2 py-0.5 rounded font-black uppercase tracking-tighter ${
                       isPresent
-                        ? "bg-emerald-100 text-emerald-600"
-                        : "bg-red-100 text-red-600"
+                        ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
+                        : "bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400"
                     }`}
                   >
                     {status}
@@ -112,7 +117,10 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
                 </div>
 
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-                  {info || "No additional information provided."}
+                  {info ||
+                    (isPresent
+                      ? "Verified in Azure storage."
+                      : "Missing from O&M database.")}
                 </p>
 
                 {isPresent && (
@@ -134,10 +142,11 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
         }
       }
 
+      // Standard text response (for Q&A Mode)
       return (
         <p
           key={i}
-          className="mb-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300"
+          className="mb-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300 font-medium"
         >
           {line}
         </p>
@@ -160,10 +169,10 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
             </div>
             <div className="flex flex-col">
               <span className="font-bold text-slate-900 dark:text-white leading-none">
-                Audit Assistant
+                Azure Audit Bot
               </span>
-              <span className="text-[9px] text-blue-500 font-bold uppercase tracking-widest mt-1">
-                AI Powered Audit
+              <span className="text-[9px] text-blue-500 font-bold uppercase tracking-widest mt-1 flex items-center gap-1">
+                <Cloud size={10} /> Live Data Sync
               </span>
             </div>
           </div>
@@ -178,7 +187,7 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
         {/* Messages Container */}
         <div
           ref={scrollRef}
-          className="flex-1 px-6 py-4 overflow-y-auto space-y-6 no-scrollbar"
+          className="flex-1 px-6 py-6 overflow-y-auto space-y-6 no-scrollbar bg-slate-50/30 dark:bg-transparent"
         >
           {messages.map((msg, idx) => (
             <div
@@ -190,52 +199,55 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
               <div
                 className={`${
                   msg.role === "user"
-                    ? "bg-[#4F6EF7] text-white p-3 px-4 rounded-2xl rounded-tr-none max-w-[85%] shadow-md"
-                    : "w-full pl-2"
+                    ? "bg-[#4F6EF7] text-white p-4 rounded-2xl rounded-tr-none max-w-[85%] shadow-lg"
+                    : "w-full"
                 }`}
               >
                 {msg.role === "ai" ? (
                   <div className="flex gap-4">
-                    <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex-shrink-0 flex items-center justify-center text-[#4F6EF7] dark:text-blue-400">
+                    <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex-shrink-0 flex items-center justify-center text-[#4F6EF7] dark:text-blue-400 border border-blue-200 dark:border-blue-800">
                       <MessageSquare size={16} />
                     </div>
-                    <div className="flex-1 pr-2">
+                    <div className="flex-1 overflow-hidden">
                       {renderMessageContent(msg.content)}
                     </div>
                   </div>
                 ) : (
-                  <span className="text-sm font-medium">{msg.content}</span>
+                  <span className="text-sm font-semibold">{msg.content}</span>
                 )}
               </div>
             </div>
           ))}
           {loading && (
-            <div className="flex items-center gap-3 text-slate-400 text-[11px] px-12 font-bold uppercase tracking-widest">
+            <div className="flex items-center gap-3 text-slate-400 text-[10px] px-12 font-black uppercase tracking-[0.2em] animate-pulse">
               <Loader2 className="animate-spin text-[#4F6EF7]" size={16} />
-              Reviewing documents...
+              Scanning Blobs...
             </div>
           )}
         </div>
 
         {/* Input Area */}
-        <div className="p-6 border-t border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-black/20">
+        <div className="p-6 border-t border-slate-200 dark:border-white/10 bg-white dark:bg-[#0B0F1A]">
           <div className="relative">
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSend()}
-              placeholder="Ask about O&M gaps..."
-              className="w-full pl-4 pr-12 py-3.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl outline-none focus:ring-2 focus:ring-[#4F6EF7]/50 transition-all text-sm dark:text-white"
+              placeholder="E.g., What is missing in Building A?"
+              className="w-full pl-4 pr-12 py-4 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl outline-none focus:ring-2 focus:ring-[#4F6EF7]/50 focus:border-[#4F6EF7] transition-all text-sm font-medium dark:text-white"
             />
             <button
               onClick={handleSend}
               disabled={loading || !query.trim()}
-              className="absolute right-2 top-2 bottom-2 px-3 bg-[#4F6EF7] text-white rounded-xl hover:bg-blue-600 disabled:opacity-50 transition-colors"
+              className="absolute right-2 top-2 bottom-2 px-3 bg-[#4F6EF7] text-white rounded-xl hover:bg-blue-600 disabled:opacity-50 transition-all active:scale-95 shadow-lg shadow-blue-500/20"
             >
               <Send size={18} />
             </button>
           </div>
+          <p className="text-[9px] text-center text-slate-400 mt-3 font-bold uppercase tracking-widest">
+            Powered by OpenAI GPT-4o & Azure
+          </p>
         </div>
       </div>
     </div>

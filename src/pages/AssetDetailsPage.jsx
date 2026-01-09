@@ -22,7 +22,7 @@ export default function AssetDetailsPage({
   onPreview,
   apiBase,
 }) {
-  const { assetId } = useParams(); // This is the folder_name from the URL
+  const { assetId } = useParams(); // Virtual folder name from URL
   const navigate = useNavigate();
   const bannerInputRef = useRef(null);
 
@@ -42,21 +42,18 @@ export default function AssetDetailsPage({
   const [showDeleteAssetModal, setShowDeleteAssetModal] = useState(false);
   const [docToDelete, setDocToDelete] = useState(null);
 
-  // --- EFFECT: ASSET INITIALIZATION & FILE FETCHING ---
+  // --- EFFECT: ASSET INITIALIZATION & BLOB FETCHING ---
   useEffect(() => {
     const initializeAsset = async () => {
-      // If portfolioData is still empty (initial load), stay in syncing mode
       if (!portfolioData.assets || portfolioData.assets.length === 0) {
         return;
       }
 
       setIsSyncing(true);
 
-      // Match asset by folder_name (from URL) or ID
+      // Match virtual folder name
       const asset = portfolioData.assets.find(
-        (a) =>
-          String(a.folder_name) === String(assetId) ||
-          String(a.id) === String(assetId)
+        (a) => String(a.folder_name) === String(assetId)
       );
 
       if (asset) {
@@ -65,16 +62,16 @@ export default function AssetDetailsPage({
         setTempImg(asset.img);
 
         try {
-          // Fetch physical files from the server
+          // Fetch blobs for this folder prefix from Azure via Backend
           const response = await fetch(
             `${apiBase}/portfolio/${asset.folder_name}/docs`
           );
           if (response.ok) {
-            const filesFromFolder = await response.json();
-            setLocalDocs(filesFromFolder);
+            const blobs = await response.json();
+            setLocalDocs(blobs);
           }
         } catch (error) {
-          console.error("Error fetching folder docs:", error);
+          console.error("Error fetching blobs:", error);
         }
       }
       setIsSyncing(false);
@@ -82,42 +79,6 @@ export default function AssetDetailsPage({
 
     initializeAsset();
   }, [assetId, portfolioData.assets, apiBase]);
-
-  // --- LOADING / NOT FOUND STATES ---
-  if (isSyncing && !currentAsset) {
-    return (
-      <div className="h-full flex flex-col items-center justify-center p-20">
-        <Loader2 className="animate-spin text-[#4F6EF7] mb-4" size={40} />
-        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-          Syncing Asset Details...
-        </p>
-      </div>
-    );
-  }
-
-  if (!isSyncing && !currentAsset) {
-    return (
-      <div className="p-20 text-center flex flex-col items-center gap-6">
-        <div className="w-16 h-16 bg-red-100 dark:bg-red-500/10 rounded-2xl flex items-center justify-center text-red-500">
-          <AlertCircle size={32} />
-        </div>
-        <div>
-          <h2 className="text-xl font-bold dark:text-white uppercase tracking-tight">
-            Asset Not Found
-          </h2>
-          <p className="text-slate-500 text-sm mt-1">
-            The folder "{assetId}" could not be retrieved from the server.
-          </p>
-        </div>
-        <button
-          onClick={() => navigate("/portfolio")}
-          className="text-[#4F6EF7] font-black uppercase tracking-widest text-xs hover:underline"
-        >
-          Return to Portfolio
-        </button>
-      </div>
-    );
-  }
 
   // --- HANDLERS ---
 
@@ -156,8 +117,8 @@ export default function AssetDetailsPage({
                 id: result.document_id,
                 name: result.filename,
                 cat: result.system,
-                doc_type: result.document_type || "Document",
-                size: result.size || "N/A",
+                previewUrl: result.previewUrl, // SAS link from Azure
+                date: result.date,
                 isLocal: false,
               }
             : doc
@@ -218,6 +179,7 @@ export default function AssetDetailsPage({
   const handleDeleteDocument = async () => {
     if (!docToDelete) return;
     try {
+      // Use the filename for the blob deletion endpoint
       const response = await fetch(
         `${apiBase}/portfolio/${currentAsset.folder_name}/docs/${docToDelete.name}`,
         { method: "DELETE" }
@@ -227,7 +189,7 @@ export default function AssetDetailsPage({
         setDocToDelete(null);
       }
     } catch (error) {
-      console.error("Doc delete error:", error);
+      console.error("Blob delete error:", error);
     }
   };
 
@@ -237,9 +199,40 @@ export default function AssetDetailsPage({
   const currentItems = localDocs.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(localDocs.length / itemsPerPage);
 
+  // Loading/Error States
+  if (isSyncing && !currentAsset) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center p-20">
+        <Loader2 className="animate-spin text-[#4F6EF7] mb-4" size={40} />
+        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+          Connecting to Azure...
+        </p>
+      </div>
+    );
+  }
+
+  if (!isSyncing && !currentAsset) {
+    return (
+      <div className="p-20 text-center flex flex-col items-center gap-6">
+        <div className="w-16 h-16 bg-red-100 dark:bg-red-500/10 rounded-2xl flex items-center justify-center text-red-500">
+          <AlertCircle size={32} />
+        </div>
+        <h2 className="text-xl font-bold dark:text-white uppercase tracking-tight">
+          Asset Not Found
+        </h2>
+        <button
+          onClick={() => navigate("/portfolio")}
+          className="text-[#4F6EF7] font-black uppercase tracking-widest text-xs hover:underline"
+        >
+          Return to Portfolio
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col min-h-screen animate-in fade-in duration-500 pb-20 max-w-full overflow-x-hidden relative">
-      {/* 1. Header Actions */}
+      {/* Header Actions */}
       <div className="flex items-center justify-between mb-6 shrink-0 px-2">
         <button
           onClick={() => navigate("/portfolio")}
@@ -255,7 +248,7 @@ export default function AssetDetailsPage({
         </button>
       </div>
 
-      {/* 2. Hero Banner Section */}
+      {/* Hero Banner Section */}
       <div className="relative h-72 rounded-[3rem] overflow-hidden mb-10 shadow-2xl shrink-0 bg-slate-800">
         <img
           src={tempImg}
@@ -304,19 +297,19 @@ export default function AssetDetailsPage({
                 }
                 className="mt-4 w-fit flex items-center gap-2 text-sm font-bold text-[#4F6EF7] hover:text-white transition-colors"
               >
-                {isEditing ? <Check size={18} /> : <Edit2 size={18} />}
+                {isEditing ? <Check size={18} /> : <Edit2 size={18} />}{" "}
                 {isEditing ? "Finish Editing" : "Edit Name & Image"}
               </button>
             </div>
             <label className="flex items-center gap-3 bg-[#4F6EF7] hover:bg-blue-600 text-white px-8 py-4 rounded-2xl font-bold cursor-pointer shadow-xl transition-all active:scale-95">
-              <Upload size={22} /> Upload files
+              <Upload size={22} /> Upload to Azure
               <input type="file" hidden onChange={handleFileUpload} />
             </label>
           </div>
         </div>
       </div>
 
-      {/* 3. Paginated Documents Table */}
+      {/* Documents Table */}
       <div
         className={`rounded-[3rem] border flex flex-col ${
           isDarkMode
@@ -324,13 +317,13 @@ export default function AssetDetailsPage({
             : "bg-white border-slate-200 shadow-2xl"
         }`}
       >
-        <div className="p-10 border-b border-inherit flex justify-between items-center sticky top-0 bg-inherit z-10 rounded-t-[3rem]">
-          <h3 className="text-2xl font-bold dark:text-white">Documents</h3>
-          <div className="flex items-center gap-4">
-            <span className="bg-slate-500/10 text-slate-500 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest">
-              {localDocs.length} Total
-            </span>
-          </div>
+        <div className="p-10 border-b border-inherit flex justify-between items-center bg-inherit rounded-t-[3rem]">
+          <h3 className="text-2xl font-bold dark:text-white tracking-tight">
+            Cloud Documents
+          </h3>
+          <span className="bg-slate-500/10 text-slate-500 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest">
+            {localDocs.length} Blobs
+          </span>
         </div>
 
         <div className="w-full overflow-x-auto">
@@ -341,8 +334,7 @@ export default function AssetDetailsPage({
               }`}
             >
               <tr className="border-b border-inherit">
-                <th className="px-10 py-6">File name</th>
-                <th className="px-10 py-6">Language</th>
+                <th className="px-10 py-6">Blob Name</th>
                 <th className="px-10 py-6">Category</th>
                 <th className="px-10 py-6 text-right">Action</th>
               </tr>
@@ -352,18 +344,7 @@ export default function AssetDetailsPage({
                 currentItems.map((doc) => (
                   <tr
                     key={doc.id}
-                    onClick={() =>
-                      onPreview({
-                        document_id: doc.id,
-                        filename: doc.name,
-                        system: doc.cat,
-                        document_type: doc.doc_type || "Document",
-                        size: doc.size || "N/A",
-                        user: doc.user || "System",
-                        date: doc.date || "Verified",
-                        asset_hint: doc.asset_hint || "",
-                      })
-                    }
+                    onClick={() => onPreview(doc)}
                     className="group hover:bg-slate-500/5 transition-colors cursor-pointer"
                   >
                     <td className="px-10 py-8 max-w-md">
@@ -376,24 +357,9 @@ export default function AssetDetailsPage({
                         </span>
                       </div>
                     </td>
-                    <td className="px-10 py-8 text-slate-500 font-bold">
-                      <div className="flex items-center gap-2">
-                        <Globe size={16} /> {doc.lang || "EN"}
-                      </div>
-                    </td>
                     <td className="px-10 py-8">
                       <span
-                        className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                          doc.cat === "HVAC"
-                            ? "bg-blue-500/10 text-blue-500"
-                            : doc.cat === "Electrical"
-                            ? "bg-yellow-500/10 text-yellow-500"
-                            : doc.cat === "Fire"
-                            ? "bg-red-500/10 text-red-500"
-                            : doc.cat === "Plumbing"
-                            ? "bg-green-500/10 text-green-500"
-                            : "bg-slate-500/10 text-slate-500"
-                        }`}
+                        className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest bg-slate-500/10 text-slate-500`}
                       >
                         {doc.cat}
                       </span>
@@ -413,10 +379,11 @@ export default function AssetDetailsPage({
                 ))
               ) : (
                 <tr>
-                  <td colSpan={4} className="px-10 py-24 text-center">
-                    <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">
-                      No files uploaded in this folder
-                    </p>
+                  <td
+                    colSpan={3}
+                    className="px-10 py-24 text-center text-slate-400 font-bold uppercase text-[10px] tracking-widest"
+                  >
+                    No blobs found in this prefix
                   </td>
                 </tr>
               )}
@@ -424,7 +391,7 @@ export default function AssetDetailsPage({
           </table>
         </div>
 
-        {/* Pagination Controls */}
+        {/* Pagination */}
         {totalPages > 1 && (
           <div className="p-8 border-t border-inherit flex justify-between items-center bg-inherit rounded-b-[3rem]">
             <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
@@ -434,14 +401,14 @@ export default function AssetDetailsPage({
               <button
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage((p) => p - 1)}
-                className="p-3 rounded-xl border border-inherit disabled:opacity-30 dark:text-white hover:bg-slate-500/10 transition-colors"
+                className="p-3 rounded-xl border border-inherit disabled:opacity-30 hover:bg-slate-500/10 transition-colors"
               >
                 <ChevronLeft size={20} />
               </button>
               <button
                 disabled={currentPage === totalPages}
                 onClick={() => setCurrentPage((p) => p + 1)}
-                className="p-3 rounded-xl border border-inherit disabled:opacity-30 dark:text-white hover:bg-slate-500/10 transition-colors"
+                className="p-3 rounded-xl border border-inherit disabled:opacity-30 hover:bg-slate-500/10 transition-colors"
               >
                 <ChevronRight size={20} />
               </button>
@@ -450,14 +417,14 @@ export default function AssetDetailsPage({
         )}
       </div>
 
-      {/* --- MODALS --- */}
+      {/* Modals */}
       {showDeleteAssetModal && (
         <div
           className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
           onClick={() => setShowDeleteAssetModal(false)}
         >
           <div
-            className="bg-white dark:bg-[#1c2128] w-full max-w-sm rounded-[2rem] p-8 border border-slate-200 shadow-2xl animate-in zoom-in-95 duration-200"
+            className="bg-white dark:bg-[#1c2128] w-full max-w-sm rounded-[2rem] p-8 border border-slate-200 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-16 h-16 bg-red-100 dark:bg-red-500/10 rounded-2xl flex items-center justify-center text-red-500 mb-6 mx-auto">
@@ -466,20 +433,16 @@ export default function AssetDetailsPage({
             <h2 className="text-xl font-bold text-center dark:text-white mb-2 uppercase tracking-tight">
               Delete Asset?
             </h2>
-            <p className="text-center text-slate-500 text-sm mb-8 leading-relaxed">
-              Are you sure you want to delete <b>{tempName}</b>? This cannot be
-              undone.
-            </p>
-            <div className="flex gap-3">
+            <div className="flex gap-3 mt-8">
               <button
                 onClick={() => setShowDeleteAssetModal(false)}
-                className="flex-1 py-3 rounded-xl font-bold text-sm text-slate-500 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 transition-colors"
+                className="flex-1 py-3 rounded-xl font-bold text-sm text-slate-500 bg-slate-100"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDeleteAsset}
-                className="flex-1 py-3 rounded-xl font-bold text-sm bg-red-500 text-white shadow-lg hover:bg-red-600 transition-colors"
+                className="flex-1 py-3 rounded-xl font-bold text-sm bg-red-500 text-white"
               >
                 Delete
               </button>
@@ -494,28 +457,25 @@ export default function AssetDetailsPage({
           onClick={() => setDocToDelete(null)}
         >
           <div
-            className="bg-white dark:bg-[#1c2128] w-full max-w-sm rounded-[2rem] p-8 border border-slate-200 shadow-2xl animate-in zoom-in-95 duration-200"
+            className="bg-white dark:bg-[#1c2128] w-full max-w-sm rounded-[2rem] p-8 border border-slate-200 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-16 h-16 bg-red-100 dark:bg-red-500/10 rounded-2xl flex items-center justify-center text-red-500 mb-6 mx-auto">
               <Trash2 size={32} />
             </div>
             <h2 className="text-xl font-bold text-center dark:text-white mb-2 uppercase tracking-tight">
-              Remove Document?
+              Remove Blob?
             </h2>
-            <p className="text-center text-slate-500 text-sm mb-8 leading-relaxed">
-              Remove <b>{docToDelete.name}</b>?
-            </p>
-            <div className="flex gap-3">
+            <div className="flex gap-3 mt-8">
               <button
                 onClick={() => setDocToDelete(null)}
-                className="flex-1 py-3 rounded-xl font-bold text-sm text-slate-500 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 transition-colors"
+                className="flex-1 py-3 rounded-xl font-bold text-sm text-slate-500 bg-slate-100"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteDocument}
-                className="flex-1 py-3 rounded-xl font-bold text-sm bg-red-500 text-white hover:bg-red-600 transition-colors"
+                className="flex-1 py-3 rounded-xl font-bold text-sm bg-red-500 text-white"
               >
                 Remove
               </button>

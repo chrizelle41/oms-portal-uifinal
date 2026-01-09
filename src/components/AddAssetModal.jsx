@@ -1,115 +1,114 @@
-import React, { useState, useRef } from "react";
-import { X, Image as ImageIcon } from "lucide-react";
+import React from "react";
+import { FileText, Star, Archive, RefreshCcw, Cloud } from "lucide-react";
 
-export default function AddAssetModal({ isOpen, onClose, onConfirm }) {
-  const [newAsset, setNewAsset] = useState({
-    name: "",
-    type: "Commercial use",
-    image: null,
-    imageFile: null, // <--- Add this to store the actual File object
-  });
-  const fileInputRef = useRef(null);
+export default function AssetCard({
+  asset,
+  onFavorite,
+  onArchive,
+  onUnarchive,
+}) {
+  // Azure Blob Storage uses folder_name as the primary identifier
+  const assetId = asset.folder_name || asset.id;
 
-  if (!isOpen) return null;
-
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setNewAsset({
-        ...newAsset,
-        image: URL.createObjectURL(file), // For the UI preview
-        imageFile: file, // For the actual backend upload
-      });
-    }
-  };
-
-  const handleConfirm = () => {
-    if (!newAsset.name) return alert("Please enter an asset name");
-
-    // Pass the whole object back to PortfolioPage
-    onConfirm(newAsset);
-
-    // Reset state
-    setNewAsset({
-      name: "",
-      type: "Commercial use",
-      image: null,
-      imageFile: null,
-    });
-  };
+  const imageUrl =
+    asset.img ||
+    "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1000&auto=format&fit=crop";
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-[#1c2128] w-full max-w-lg rounded-[2.5rem] p-8 border border-slate-200 dark:border-white/10 shadow-2xl animate-in zoom-in-95 duration-200">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-black dark:text-white">New asset</h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-slate-100 dark:hover:bg-white/5 rounded-full text-slate-400 transition-colors"
-          >
-            <X size={24} />
-          </button>
+    <div
+      className="
+        group
+        bg-white dark:bg-[#161B22]/40
+        border border-slate-200 dark:border-white/10
+        rounded-[2.5rem]
+        overflow-hidden
+        flex flex-col
+        relative
+        transition-all duration-500
+        hover:-translate-y-1 hover:shadow-2xl
+        cursor-pointer
+        min-w-[260px]
+        w-full
+      "
+    >
+      {/* Image Section */}
+      <div className="h-44 relative overflow-hidden">
+        <img
+          src={imageUrl}
+          alt={asset.name}
+          className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+        />
+
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+
+        {/* Cloud Badge (Indicates Azure Sync) */}
+        <div className="absolute top-4 left-4 z-20">
+          <div className="bg-black/20 backdrop-blur-md border border-white/20 p-2 rounded-xl text-white/80">
+            <Cloud size={14} />
+          </div>
         </div>
 
-        <div className="space-y-6">
-          <div
-            onClick={() => fileInputRef.current.click()}
-            className="w-full h-40 border-2 border-dashed border-slate-200 dark:border-white/10 rounded-3xl flex flex-col items-center justify-center cursor-pointer hover:border-[#4F6EF7] transition-all bg-slate-50 dark:bg-white/[0.02] overflow-hidden group"
+        {/* Actions */}
+        <div className="absolute top-4 right-4 flex flex-col gap-2 z-20">
+          {/* Favorite */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onFavorite(assetId);
+            }}
+            className={`p-3 rounded-2xl shadow-xl backdrop-blur-xl border border-white/10 transition-all active:scale-90 ${
+              asset.isFavorite
+                ? "bg-yellow-500 text-white"
+                : "bg-black/40 text-white/60 hover:text-yellow-400"
+            }`}
           >
-            {newAsset.image ? (
-              <img
-                src={newAsset.image}
-                className="w-full h-full object-cover group-hover:opacity-75 transition-opacity"
-                alt="Preview"
-              />
-            ) : (
-              <>
-                <ImageIcon size={32} className="text-slate-400 mb-2" />
-                <span className="text-sm font-bold text-slate-500 uppercase tracking-wider text-center px-4">
-                  Choose a cover image
-                </span>
-              </>
-            )}
-            <input
-              type="file"
-              ref={fileInputRef}
-              hidden
-              accept="image/*"
-              onChange={handleImageChange}
-            />
+            <Star size={16} fill={asset.isFavorite ? "currentColor" : "none"} />
+          </button>
+
+          {/* Archive / Restore */}
+          {asset.status === "archived" ? (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onUnarchive(assetId);
+              }}
+              className="p-3 rounded-2xl shadow-xl bg-black/40 text-white/60 hover:bg-[#4F6EF7] hover:text-white backdrop-blur-xl border border-white/10 transition-all active:scale-90"
+              title="Restore"
+            >
+              <RefreshCcw size={16} />
+            </button>
+          ) : (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onArchive(asset);
+              }}
+              className="p-3 rounded-2xl shadow-xl bg-black/40 text-white/60 hover:bg-red-500 hover:text-white backdrop-blur-xl border border-white/10 transition-all active:scale-90"
+              title="Archive"
+            >
+              <Archive size={16} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Content Section */}
+      <div className="p-6 flex flex-col flex-1">
+        <h3 className="font-bold text-slate-900 dark:text-white text-lg truncate mb-6 group-hover:text-[#4F6EF7] transition-colors">
+          {asset.name}
+        </h3>
+
+        {/* Footer with Blob Doc Count */}
+        <div className="mt-auto flex items-center justify-between">
+          <div className="inline-flex items-center gap-1.5 text-slate-500 text-[10px] font-black uppercase tracking-widest bg-slate-100 dark:bg-white/5 px-3 py-1.5 rounded-full">
+            <FileText size={12} className="text-[#4F6EF7]" />
+            {asset.docs || 0} Documents
           </div>
 
-          <div className="space-y-4">
-            <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-2 mb-2 block">
-                Asset Name
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. Virtual Viewing"
-                className="w-full px-5 py-4 bg-slate-100 dark:bg-white/5 border-none rounded-2xl outline-none focus:ring-2 focus:ring-[#4F6EF7]/50 dark:text-white placeholder:text-slate-400"
-                value={newAsset.name}
-                onChange={(e) =>
-                  setNewAsset({ ...newAsset, name: e.target.value })
-                }
-              />
-            </div>
-          </div>
-
-          <div className="flex gap-4 pt-4">
-            <button
-              onClick={onClose}
-              className="flex-1 py-4 rounded-2xl font-bold text-slate-500 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 transition-all"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleConfirm}
-              className="flex-1 py-4 rounded-2xl font-bold bg-[#4F6EF7] text-white shadow-lg shadow-blue-500/20 hover:bg-blue-600 active:scale-95 transition-all"
-            >
-              Create Asset
-            </button>
-          </div>
+          {/* Virtual Folder Identifier */}
+          <span className="text-[9px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-tighter">
+            ID: {asset.folder_name || "root"}
+          </span>
         </div>
       </div>
     </div>
