@@ -20,22 +20,19 @@ export default function AssetDetailsPage({
   portfolioData,
   setPortfolioData,
   onPreview,
-  apiBase, // <--- Received from App.jsx
+  apiBase,
 }) {
-  const { assetId } = useParams();
+  const { assetId } = useParams(); // This is the folder_name from the URL
   const navigate = useNavigate();
   const bannerInputRef = useRef(null);
 
-  const currentAsset = portfolioData.assets.find(
-    (a) => String(a.id) === String(assetId)
-  );
-
   // States
+  const [currentAsset, setCurrentAsset] = useState(null);
   const [tempName, setTempName] = useState("");
   const [tempImg, setTempImg] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [localDocs, setLocalDocs] = useState([]);
-  const [isSyncing, setIsSyncing] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(true);
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -45,64 +42,96 @@ export default function AssetDetailsPage({
   const [showDeleteAssetModal, setShowDeleteAssetModal] = useState(false);
   const [docToDelete, setDocToDelete] = useState(null);
 
-  // Initial Data Fetch
+  // --- EFFECT: ASSET INITIALIZATION & FILE FETCHING ---
   useEffect(() => {
-    if (currentAsset) {
-      setTempName(currentAsset.name);
-      setTempImg(currentAsset.img);
+    const initializeAsset = async () => {
+      // If portfolioData is still empty (initial load), stay in syncing mode
+      if (!portfolioData.assets || portfolioData.assets.length === 0) {
+        return;
+      }
 
-      const fetchRealFiles = async () => {
-        setIsSyncing(true);
+      setIsSyncing(true);
+
+      // Match asset by folder_name (from URL) or ID
+      const asset = portfolioData.assets.find(
+        (a) =>
+          String(a.folder_name) === String(assetId) ||
+          String(a.id) === String(assetId)
+      );
+
+      if (asset) {
+        setCurrentAsset(asset);
+        setTempName(asset.name);
+        setTempImg(asset.img);
+
         try {
-          // UPDATED: Use dynamic apiBase
+          // Fetch physical files from the server
           const response = await fetch(
-            `${apiBase}/portfolio/${currentAsset.folder_name}/docs`
+            `${apiBase}/portfolio/${asset.folder_name}/docs`
           );
-          if (!response.ok) throw new Error("Failed to read directory");
-
-          const filesFromFolder = await response.json();
-          setLocalDocs(filesFromFolder);
+          if (response.ok) {
+            const filesFromFolder = await response.json();
+            setLocalDocs(filesFromFolder);
+          }
         } catch (error) {
-          console.error("Folder read error:", error);
-        } finally {
-          setIsSyncing(false);
+          console.error("Error fetching folder docs:", error);
         }
-      };
+      }
+      setIsSyncing(false);
+    };
 
-      fetchRealFiles();
-    }
-  }, [currentAsset, apiBase]);
+    initializeAsset();
+  }, [assetId, portfolioData.assets, apiBase]);
 
-  // Pagination Logic
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = localDocs.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(localDocs.length / itemsPerPage);
-
-  if (!currentAsset)
+  // --- LOADING / NOT FOUND STATES ---
+  if (isSyncing && !currentAsset) {
     return (
-      <div className="p-20 text-center font-bold text-slate-500">
-        Asset not found.
+      <div className="h-full flex flex-col items-center justify-center p-20">
+        <Loader2 className="animate-spin text-[#4F6EF7] mb-4" size={40} />
+        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+          Syncing Asset Details...
+        </p>
       </div>
     );
+  }
 
-  // --- UPDATED: FILE UPLOAD LOGIC ---
+  if (!isSyncing && !currentAsset) {
+    return (
+      <div className="p-20 text-center flex flex-col items-center gap-6">
+        <div className="w-16 h-16 bg-red-100 dark:bg-red-500/10 rounded-2xl flex items-center justify-center text-red-500">
+          <AlertCircle size={32} />
+        </div>
+        <div>
+          <h2 className="text-xl font-bold dark:text-white uppercase tracking-tight">
+            Asset Not Found
+          </h2>
+          <p className="text-slate-500 text-sm mt-1">
+            The folder "{assetId}" could not be retrieved from the server.
+          </p>
+        </div>
+        <button
+          onClick={() => navigate("/portfolio")}
+          className="text-[#4F6EF7] font-black uppercase tracking-widest text-xs hover:underline"
+        >
+          Return to Portfolio
+        </button>
+      </div>
+    );
+  }
+
+  // --- HANDLERS ---
+
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
-    if (!file || !currentAsset?.folder_name) {
-      alert("Error: Asset folder not initialized correctly.");
-      return;
-    }
+    if (!file || !currentAsset?.folder_name) return;
 
     const tempId = Date.now();
     const processingDoc = {
       id: tempId,
       name: file.name,
-      lang: "EN",
-      cat: "AI Analyzing...",
+      cat: "Analyzing...",
       status: "Processing",
       date: new Date().toISOString().split("T")[0],
-      user: "System",
       isLocal: true,
     };
 
@@ -113,7 +142,6 @@ export default function AssetDetailsPage({
     formData.append("folder_name", currentAsset.folder_name);
 
     try {
-      // UPDATED: Use dynamic apiBase for classify-document (Azure OpenAI route)
       const response = await fetch(`${apiBase}/classify-document`, {
         method: "POST",
         body: formData,
@@ -126,12 +154,10 @@ export default function AssetDetailsPage({
             ? {
                 ...doc,
                 id: result.document_id,
-                name: result.name,
-                cat: result.category,
+                name: result.filename,
+                cat: result.system,
                 doc_type: result.document_type || "Document",
-                asset_hint: result.asset_hint || "None",
                 size: result.size || "N/A",
-                status: "Verified",
                 isLocal: false,
               }
             : doc
@@ -139,12 +165,10 @@ export default function AssetDetailsPage({
       );
     } catch (error) {
       console.error("Upload error:", error);
-      // Remove the temp doc on error
       setLocalDocs((prev) => prev.filter((d) => d.id !== tempId));
     }
   };
 
-  // --- UPDATED: UPDATE ASSET LOGIC ---
   const handleFinishEditing = async () => {
     try {
       const response = await fetch(
@@ -152,82 +176,71 @@ export default function AssetDetailsPage({
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: tempName,
-            image: tempImg,
-          }),
+          body: JSON.stringify({ name: tempName, image: tempImg }),
         }
       );
-
-      if (!response.ok) throw new Error("Failed to update asset");
+      if (!response.ok) throw new Error("Update failed");
 
       setPortfolioData((prev) => ({
         ...prev,
         assets: prev.assets.map((a) =>
-          String(a.id) === String(assetId)
+          a.folder_name === currentAsset.folder_name
             ? { ...a, name: tempName, img: tempImg }
             : a
         ),
       }));
-
       setIsEditing(false);
     } catch (error) {
-      console.error("Error updating asset:", error);
-      alert("Could not save changes to the server.");
+      alert("Save failed.");
     }
   };
 
-  // --- UPDATED: DELETE ASSET LOGIC ---
   const confirmDeleteAsset = async () => {
     try {
       const response = await fetch(
         `${apiBase}/portfolio/assets/${currentAsset.folder_name}`,
         { method: "DELETE" }
       );
-
       if (response.ok) {
         setPortfolioData((prev) => ({
           ...prev,
-          assets: prev.assets.filter((a) => String(a.id) !== String(assetId)),
-          stats: {
-            ...prev.stats,
-            properties: Math.max(0, prev.stats.properties - 1),
-          },
+          assets: prev.assets.filter(
+            (a) => a.folder_name !== currentAsset.folder_name
+          ),
         }));
         navigate("/portfolio");
-      } else {
-        alert("Failed to delete asset from server.");
       }
     } catch (error) {
-      console.error("Failed to delete asset:", error);
+      console.error("Delete failed:", error);
     }
   };
 
-  // --- UPDATED: DELETE DOCUMENT LOGIC ---
   const handleDeleteDocument = async () => {
     if (!docToDelete) return;
-
     try {
       const response = await fetch(
         `${apiBase}/portfolio/${currentAsset.folder_name}/docs/${docToDelete.name}`,
         { method: "DELETE" }
       );
-
       if (response.ok) {
         setLocalDocs((prev) => prev.filter((d) => d.id !== docToDelete.id));
         setDocToDelete(null);
-      } else {
-        alert("Failed to delete document from server.");
       }
     } catch (error) {
-      console.error("Failed to delete document:", error);
+      console.error("Doc delete error:", error);
     }
   };
+
+  // Pagination Calc
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = localDocs.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(localDocs.length / itemsPerPage);
 
   return (
     <div className="flex flex-col min-h-screen animate-in fade-in duration-500 pb-20 max-w-full overflow-x-hidden relative">
       {/* 1. Header Actions */}
-      <div className="flex items-center justify-between mb-6 shrink-0">
+      <div className="flex items-center justify-between mb-6 shrink-0 px-2">
         <button
           onClick={() => navigate("/portfolio")}
           className="flex items-center gap-2 text-slate-500 hover:text-[#4F6EF7] font-bold text-sm transition-colors"
@@ -247,7 +260,7 @@ export default function AssetDetailsPage({
         <img
           src={tempImg}
           className={`w-full h-full object-cover opacity-80 transition-all duration-700 ${
-            isEditing ? "brightness-50" : "group-hover:scale-105"
+            isEditing ? "brightness-50" : ""
           }`}
           alt="Banner"
         />
@@ -274,14 +287,12 @@ export default function AssetDetailsPage({
           <div className="flex justify-between items-end w-full">
             <div className="flex flex-col gap-2 w-full max-w-3xl">
               {isEditing ? (
-                <div className="space-y-3">
-                  <input
-                    autoFocus
-                    value={tempName}
-                    onChange={(e) => setTempName(e.target.value)}
-                    className="text-4xl font-black text-white bg-white/10 border-b-2 border-[#4F6EF7] outline-none w-full px-2 rounded-md"
-                  />
-                </div>
+                <input
+                  autoFocus
+                  value={tempName}
+                  onChange={(e) => setTempName(e.target.value)}
+                  className="text-4xl font-black text-white bg-white/10 border-b-2 border-[#4F6EF7] outline-none w-full px-2 rounded-md"
+                />
               ) : (
                 <h2 className="text-5xl font-black text-white leading-tight">
                   {tempName}
@@ -316,26 +327,23 @@ export default function AssetDetailsPage({
         <div className="p-10 border-b border-inherit flex justify-between items-center sticky top-0 bg-inherit z-10 rounded-t-[3rem]">
           <h3 className="text-2xl font-bold dark:text-white">Documents</h3>
           <div className="flex items-center gap-4">
-            <span className="bg-slate-500/10 text-slate-500 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest">
+            <span className="bg-slate-500/10 text-slate-500 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest">
               {localDocs.length} Total
             </span>
-            {isSyncing && (
-              <Loader2 className="animate-spin text-blue-500" size={24} />
-            )}
           </div>
         </div>
 
         <div className="w-full overflow-x-auto">
           <table className="w-full text-left table-auto">
             <thead
-              className={`text-xs font-black uppercase tracking-widest ${
+              className={`text-[10px] font-black uppercase tracking-widest ${
                 isDarkMode ? "text-slate-500" : "text-slate-400"
               }`}
             >
               <tr className="border-b border-inherit">
                 <th className="px-10 py-6">File name</th>
                 <th className="px-10 py-6">Language</th>
-                <th className="px-10 py-6">AI Category</th>
+                <th className="px-10 py-6">Category</th>
                 <th className="px-10 py-6 text-right">Action</th>
               </tr>
             </thead>
@@ -353,7 +361,7 @@ export default function AssetDetailsPage({
                         size: doc.size || "N/A",
                         user: doc.user || "System",
                         date: doc.date || "Verified",
-                        asset_hint: doc.asset_hint || "None",
+                        asset_hint: doc.asset_hint || "",
                       })
                     }
                     className="group hover:bg-slate-500/5 transition-colors cursor-pointer"
@@ -375,7 +383,7 @@ export default function AssetDetailsPage({
                     </td>
                     <td className="px-10 py-8">
                       <span
-                        className={`px-4 py-2 rounded-full text-xs font-black uppercase ${
+                        className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest ${
                           doc.cat === "HVAC"
                             ? "bg-blue-500/10 text-blue-500"
                             : doc.cat === "Electrical"
@@ -406,8 +414,8 @@ export default function AssetDetailsPage({
               ) : (
                 <tr>
                   <td colSpan={4} className="px-10 py-24 text-center">
-                    <p className="text-slate-400 font-bold">
-                      No files uploaded
+                    <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">
+                      No files uploaded in this folder
                     </p>
                   </td>
                 </tr>
@@ -419,7 +427,7 @@ export default function AssetDetailsPage({
         {/* Pagination Controls */}
         {totalPages > 1 && (
           <div className="p-8 border-t border-inherit flex justify-between items-center bg-inherit rounded-b-[3rem]">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
               Page {currentPage} of {totalPages}
             </p>
             <div className="flex gap-3">
@@ -442,7 +450,7 @@ export default function AssetDetailsPage({
         )}
       </div>
 
-      {/* --- MODALS (Unchanged Logic, purely UI) --- */}
+      {/* --- MODALS --- */}
       {showDeleteAssetModal && (
         <div
           className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
@@ -455,7 +463,7 @@ export default function AssetDetailsPage({
             <div className="w-16 h-16 bg-red-100 dark:bg-red-500/10 rounded-2xl flex items-center justify-center text-red-500 mb-6 mx-auto">
               <AlertCircle size={32} />
             </div>
-            <h2 className="text-xl font-bold text-center dark:text-white mb-2">
+            <h2 className="text-xl font-bold text-center dark:text-white mb-2 uppercase tracking-tight">
               Delete Asset?
             </h2>
             <p className="text-center text-slate-500 text-sm mb-8 leading-relaxed">
@@ -492,7 +500,7 @@ export default function AssetDetailsPage({
             <div className="w-16 h-16 bg-red-100 dark:bg-red-500/10 rounded-2xl flex items-center justify-center text-red-500 mb-6 mx-auto">
               <Trash2 size={32} />
             </div>
-            <h2 className="text-xl font-bold text-center dark:text-white mb-2">
+            <h2 className="text-xl font-bold text-center dark:text-white mb-2 uppercase tracking-tight">
               Remove Document?
             </h2>
             <p className="text-center text-slate-500 text-sm mb-8 leading-relaxed">

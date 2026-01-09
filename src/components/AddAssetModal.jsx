@@ -86,7 +86,7 @@ export default function AddAssetModal({ isOpen, onClose, onConfirm }) {
               </label>
               <input
                 type="text"
-                placeholder="e.g. Dubai Marina Mall"
+                placeholder="e.g. Virtual Viewing"
                 className="w-full px-5 py-4 bg-slate-100 dark:bg-white/5 border-none rounded-2xl outline-none focus:ring-2 focus:ring-[#4F6EF7]/50 dark:text-white placeholder:text-slate-400"
                 value={newAsset.name}
                 onChange={(e) =>
