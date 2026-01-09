@@ -1,5 +1,13 @@
 import React, { useState } from "react";
-import { X, Database, User, Calendar, Info, FileText, Cloud } from "lucide-react";
+import {
+  X,
+  Database,
+  User,
+  Calendar,
+  Info,
+  FileText,
+  Cloud,
+} from "lucide-react";
 
 export default function DocumentPreviewDrawer({
   document,
@@ -10,15 +18,13 @@ export default function DocumentPreviewDrawer({
 
   if (!document) return null;
 
-  // --- UPDATED FOR AZURE BLOB STORAGE ---
-  // We prioritize 'previewUrl' which contains the SAS Token from Azure.
-  // If it's a local upload (not yet in cloud), we use the localUrl.
-  // Otherwise, we fallback to the backend preview route.
+  // --- DYNAMIC BACKEND URL ---
   const API_BASE_URL =
     window.location.hostname === "localhost"
       ? "http://localhost:8000"
       : "https://oms-portal4-1.onrender.com";
 
+  // Priority: 1. Local Blob, 2. Azure SAS Token, 3. Backend Redirect
   const finalPreviewUrl = document.isLocal
     ? document.localUrl
     : document.previewUrl || `${API_BASE_URL}/preview/${document.id}`;
@@ -53,10 +59,9 @@ export default function DocumentPreviewDrawer({
                 <h2 className="text-xl font-bold truncate max-w-md">
                   {document.name}
                 </h2>
-                {/* Cloud Indicator */}
                 <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                   <Cloud size={12} className="text-blue-500" />
-                   Secure Azure Blob Preview
+                  <Cloud size={12} className="text-blue-500" />
+                  Secure Azure Blob Preview
                 </div>
               </div>
             </div>
@@ -73,7 +78,6 @@ export default function DocumentPreviewDrawer({
             }`}
           >
             <div className="w-full h-full max-w-5xl shadow-2xl bg-white rounded-2xl overflow-hidden border border-slate-200 dark:border-white/5">
-              {/* Use the final SAS Token URL here */}
               <iframe
                 key={document.id}
                 src={finalPreviewUrl}
@@ -90,7 +94,7 @@ export default function DocumentPreviewDrawer({
             isDarkMode ? "bg-[#0B0F1A]" : "bg-slate-50/50"
           }`}
         >
-          {/* Tabs */}
+          {/* Tabs - FIX APPLIED HERE */}
           <div className="flex p-3 gap-2 border-b border-slate-200 dark:border-white/10">
             <button
               onClick={() => setActiveTab("details")}
@@ -109,9 +113,8 @@ export default function DocumentPreviewDrawer({
                   ? "bg-[#4F6EF7] text-white shadow-lg"
                   : "text-slate-400 hover:bg-slate-500/10"
               }`}
-            ) : (
-              "Metadata"
-            )}
+            >
+              Metadata
             </button>
           </div>
 
@@ -153,8 +156,8 @@ export default function DocumentPreviewDrawer({
                     <Info size={14} /> Audit Note
                   </div>
                   <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400 font-medium italic">
-                    This file is securely served via a Shared Access Signature (SAS).
-                    Access is logged for audit purposes.
+                    This file is securely served via Azure SAS. Access is logged
+                    for audit purposes.
                   </p>
                 </div>
               </>
@@ -190,7 +193,6 @@ export default function DocumentPreviewDrawer({
   );
 }
 
-/* Helper Component */
 function DetailRow({ icon, label, value, highlight, italic }) {
   return (
     <div className="flex justify-between items-center text-[11px]">
