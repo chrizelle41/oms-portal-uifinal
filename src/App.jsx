@@ -36,6 +36,7 @@ export default function App() {
   const [globalSearch, setGlobalSearch] = useState("");
   const [selectedDoc, setSelectedDoc] = useState(null);
 
+  // Theme Logic
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add("dark");
@@ -60,17 +61,17 @@ export default function App() {
         const filesData = await filesRes.json();
         const resData = await portfolioRes.json();
 
-        setFiles(filesData);
+        setFiles(Array.isArray(filesData) ? filesData : []);
 
-        const initializedAssets = (resData.assets || []).map((a) => ({
+        const initializedAssets = (resData?.assets || []).map((a) => ({
           ...a,
           isFavorite: false,
-          status: a.status || "active",
-          type: a.type || "Commercial use",
+          status: a?.status || "active",
+          type: a?.type || "Commercial use",
         }));
 
         setPortfolioData({
-          stats: resData.stats || { companies: 0, properties: 0, docs: 0 },
+          stats: resData?.stats || { companies: 0, properties: 0, docs: 0 },
           assets: initializedAssets,
         });
       } catch (err) {
@@ -82,33 +83,35 @@ export default function App() {
     fetchData();
   }, []);
 
-  // --- UPDATED PREVIEW LOGIC FOR AZURE BLOB ---
+  // --- UPDATED PREVIEW LOGIC FOR AZURE BLOB (WITH NESTED PATH SUPPORT) ---
   const handleOpenPreview = (file) => {
+    if (!file) return;
+
     setSelectedDoc({
-      id: file.document_id || file.id,
-      name: file.filename || file.name,
-      cat: file.system || file.cat || "Document",
-      doc_type: file.document_type || file.doc_type || "General",
-      size: file.size || "N/A",
-      user: file.user || "System",
-      date: file.date || "Verified",
-      asset_hint: file.asset_hint || "",
+      id: file?.document_id || file?.id,
+      name: file?.filename || file?.name,
+      cat: file?.system || file?.cat || "Document",
+      doc_type: file?.document_type || file?.doc_type || "General",
+      size: file?.size || "N/A",
+      user: file?.user || "System",
+      date: file?.date || "Verified",
+      asset_hint: file?.asset_hint || "",
       isLocal: false,
-      // Use the direct Azure SAS link if available, otherwise fallback to redirect endpoint
+      // SAS Link Priority
       previewUrl:
-        file.previewUrl ||
-        `${API_BASE_URL}/preview/${file.document_id || file.id}`,
+        file?.previewUrl ||
+        `${API_BASE_URL}/preview/${encodeURIComponent(
+          file?.document_id || file?.id
+        )}`,
     });
   };
 
   const handleOpenDocFromChat = async (docTitle) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/files`);
-      const allFiles = await response.json();
       const cleanTitle = docTitle.toLowerCase().trim();
-
-      const match = allFiles.find((f) => {
-        const fname = (f.filename || f.name || "").toLowerCase();
+      // Use the existing files state for matching to save an API call
+      const match = files.find((f) => {
+        const fname = (f?.filename || f?.name || "").toLowerCase();
         return (
           fname.includes(cleanTitle) ||
           cleanTitle.includes(fname.replace(".pdf", ""))
@@ -123,14 +126,22 @@ export default function App() {
     }
   };
 
+  // --- DEFENSIVE STATS CALCULATION ---
   const stats = useMemo(
     () => ({
-      totalDocs: files.length,
-      buildings: [...new Set(files.map((f) => f.building || f.folder_name))]
-        .length,
-      systems: [...new Set(files.map((f) => f.system || f.cat))].filter(Boolean)
-        .length,
-      assets: files.filter((f) => f.asset_hint).length,
+      totalDocs: files?.length || 0,
+      buildings: [
+        ...new Set(
+          files?.map(
+            (f) =>
+              f?.building || f?.folder_name || (f?.id && f.id.split("/")[1])
+          )
+        ),
+      ].filter(Boolean).length,
+      systems: [...new Set(files?.map((f) => f?.system || f?.cat))].filter(
+        Boolean
+      ).length,
+      assets: files?.filter((f) => f?.asset_hint)?.length || 0,
     }),
     [files]
   );

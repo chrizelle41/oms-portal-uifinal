@@ -7,11 +7,14 @@ export default function AssetCard({
   onArchive,
   onUnarchive,
 }) {
+  // SAFETY GUARD: If asset is missing, don't crash the page
+  if (!asset) return null;
+
   // Azure Blob Storage uses folder_name as the primary identifier
-  const assetId = asset.folder_name || asset.id;
+  const assetId = asset?.folder_name || asset?.id;
 
   const imageUrl =
-    asset.img ||
+    asset?.img ||
     "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1000&auto=format&fit=crop";
 
   return (
@@ -35,7 +38,7 @@ export default function AssetCard({
       <div className="h-44 relative overflow-hidden">
         <img
           src={imageUrl}
-          alt={asset.name}
+          alt={asset?.name}
           className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
         />
 
@@ -57,16 +60,19 @@ export default function AssetCard({
               onFavorite(assetId);
             }}
             className={`p-3 rounded-2xl shadow-xl backdrop-blur-xl border border-white/10 transition-all active:scale-90 ${
-              asset.isFavorite
+              asset?.isFavorite
                 ? "bg-yellow-500 text-white"
                 : "bg-black/40 text-white/60 hover:text-yellow-400"
             }`}
           >
-            <Star size={16} fill={asset.isFavorite ? "currentColor" : "none"} />
+            <Star
+              size={16}
+              fill={asset?.isFavorite ? "currentColor" : "none"}
+            />
           </button>
 
           {/* Archive / Restore */}
-          {asset.status === "archived" ? (
+          {asset?.status === "archived" ? (
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -95,19 +101,19 @@ export default function AssetCard({
       {/* Content Section */}
       <div className="p-6 flex flex-col flex-1">
         <h3 className="font-bold text-slate-900 dark:text-white text-lg truncate mb-6 group-hover:text-[#4F6EF7] transition-colors">
-          {asset.name}
+          {asset?.name || "Unnamed Asset"}
         </h3>
 
         {/* Footer with Blob Doc Count */}
         <div className="mt-auto flex items-center justify-between">
           <div className="inline-flex items-center gap-1.5 text-slate-500 text-[10px] font-black uppercase tracking-widest bg-slate-100 dark:bg-white/5 px-3 py-1.5 rounded-full">
             <FileText size={12} className="text-[#4F6EF7]" />
-            {asset.docs || 0} Documents
+            {asset?.docs || 0} Documents
           </div>
 
           {/* Virtual Folder Identifier */}
           <span className="text-[9px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-tighter">
-            ID: {asset.folder_name || "root"}
+            ID: {asset?.folder_name || "root"}
           </span>
         </div>
       </div>

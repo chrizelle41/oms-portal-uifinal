@@ -2,6 +2,22 @@ import React from "react";
 import { FileText, Folder, HardDrive } from "lucide-react";
 
 export default function DataTable({ files = [], loading, onRowClick }) {
+  // --- HELPER: CLEAN NESTED PATHS ---
+  const getCleanFolderName = (file) => {
+    // Priority check for the various keys the backend might send
+    const rawPath = file.folder_name || file.building || file.asset_hint || "";
+
+    // If it's a nested Azure path like "Input_Documents/Building_A/file.pdf"
+    if (rawPath.includes("Input_Documents/")) {
+      const parts = rawPath.split("/");
+      // Return the second part (the building name) and replace underscores
+      return parts[1] ? parts[1].replace(/_/g, " ") : "Root";
+    }
+
+    // Fallback for root files or local CSV data
+    return rawPath.replace(/_/g, " ") || "om-root";
+  };
+
   // 1. Loading State
   if (loading) {
     return (
@@ -58,16 +74,15 @@ export default function DataTable({ files = [], loading, onRowClick }) {
 
         <tbody className="divide-y divide-slate-100 dark:divide-white/5">
           {files.map((file, index) => {
-            // --- BLOB PROPERTY MAPPING ---
-            const fileName = file.filename || file.name || "Unnamed Blob";
-            const systemLabel = file.system || file.cat || "Uncategorized";
-            const folderLabel =
-              file.building || file.folder_name || file.asset_hint || "om-root";
-            const fileSize = file.size || "N/A";
+            // --- SAFE BLOB PROPERTY MAPPING ---
+            const fileName = file?.filename || file?.name || "Unnamed Blob";
+            const systemLabel = file?.system || file?.cat || "Uncategorized";
+            const folderLabel = getCleanFolderName(file);
+            const fileSize = file?.size || "N/A";
 
             return (
               <tr
-                key={file.id || file.document_id || index}
+                key={file?.id || file?.document_id || index}
                 onClick={() => onRowClick && onRowClick(file)}
                 className="group hover:bg-[#4F6EF7]/5 dark:hover:bg-white/[0.04] transition-all duration-200 cursor-pointer"
               >

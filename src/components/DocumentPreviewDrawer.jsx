@@ -180,8 +180,12 @@ export default function DocumentPreviewDrawer({
                   />
                   <DetailRow
                     icon={<Database size={14} />}
-                    label="Blob ID"
-                    value={document.id}
+                    label="Path"
+                    // This removes the 'Input_Documents/' prefix for a cleaner UI
+                    value={
+                      document.id?.replace("Input_Documents/", "") || "Root"
+                    }
+                    italic
                   />
                 </div>
               </>

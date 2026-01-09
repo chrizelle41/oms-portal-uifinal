@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { NavLink } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   Folder,
@@ -10,10 +10,17 @@ import {
   Settings,
   LogOut,
   User,
+  Cloud,
 } from "lucide-react";
 
 export default function Sidebar({ isCollapsed, setIsCollapsed, isDarkMode }) {
   const [showAccountMenu, setShowAccountMenu] = useState(false);
+  const location = useLocation();
+
+  // Close account menu if sidebar is collapsed
+  useEffect(() => {
+    if (isCollapsed) setShowAccountMenu(false);
+  }, [isCollapsed]);
 
   const menuItems = [
     {
@@ -25,6 +32,8 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isDarkMode }) {
       name: "Portfolio",
       path: "/portfolio",
       icon: <Briefcase size={22} />,
+      // Matches both /portfolio and /portfolio/Building_A
+      matchPath: "/portfolio",
     },
     {
       name: "All Files",
@@ -49,9 +58,12 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isDarkMode }) {
       >
         {!isCollapsed ? (
           <>
-            <span className="font-black text-xl bg-gradient-to-r from-[#4F6EF7] to-purple-400 bg-clip-text text-transparent truncate ml-2">
-              O&Ms Portal
-            </span>
+            <div className="flex items-center gap-2 ml-2">
+              <Cloud size={20} className="text-[#4F6EF7]" />
+              <span className="font-black text-xl bg-gradient-to-r from-[#4F6EF7] to-purple-400 bg-clip-text text-transparent truncate">
+                O&Ms Portal
+              </span>
+            </div>
             <button
               onClick={() => setIsCollapsed(true)}
               className="p-2 hover:bg-slate-500/10 rounded-xl text-slate-400 transition-colors"
@@ -71,33 +83,38 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isDarkMode }) {
 
       {/* Navigation */}
       <nav className="flex-1 px-3 space-y-2">
-        {menuItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            title={isCollapsed ? item.name : ""}
-            className={({ isActive }) => `
-              flex items-center rounded-2xl transition-all duration-200 group
-              ${
-                isCollapsed
-                  ? "justify-center h-12 w-12 mx-auto"
-                  : "px-4 py-3.5 gap-4 w-full"
-              }
-              ${
-                isActive
-                  ? "bg-[#4F6EF7] text-white shadow-lg shadow-blue-500/20"
-                  : "text-slate-500 hover:text-slate-900 dark:hover:text-slate-300 hover:bg-slate-500/5"
-              }
-            `}
-          >
-            <div className="shrink-0">{item.icon}</div>
-            {!isCollapsed && (
-              <span className="font-bold whitespace-nowrap text-sm">
-                {item.name}
-              </span>
-            )}
-          </NavLink>
-        ))}
+        {menuItems.map((item) => {
+          // Check if current location starts with the item's path (for nested portfolio routes)
+          const isDeepActive = location.pathname.startsWith(item.path);
+
+          return (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              title={isCollapsed ? item.name : ""}
+              className={({ isActive }) => `
+                flex items-center rounded-2xl transition-all duration-200 group
+                ${
+                  isCollapsed
+                    ? "justify-center h-12 w-12 mx-auto"
+                    : "px-4 py-3.5 gap-4 w-full"
+                }
+                ${
+                  isActive || (item.matchPath && isDeepActive)
+                    ? "bg-[#4F6EF7] text-white shadow-lg shadow-blue-500/20"
+                    : "text-slate-500 hover:text-slate-900 dark:hover:text-slate-300 hover:bg-slate-500/5"
+                }
+              `}
+            >
+              <div className="shrink-0">{item.icon}</div>
+              {!isCollapsed && (
+                <span className="font-bold whitespace-nowrap text-sm">
+                  {item.name}
+                </span>
+              )}
+            </NavLink>
+          );
+        })}
       </nav>
 
       {/* Account Section */}
@@ -123,16 +140,18 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isDarkMode }) {
                     isDarkMode ? "text-white" : "text-slate-900"
                   }`}
                 >
-                  User
+                  Admin User
                 </p>
-                <p className="text-[10px] text-slate-500 truncate">
-                  User@virtualviewing.com
+                <p className="text-[10px] text-slate-500 truncate italic">
+                  Azure Connected
                 </p>
               </div>
 
               <button
                 onClick={() => setShowAccountMenu(!showAccountMenu)}
-                className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-500/10"
+                className={`p-1.5 rounded-lg text-slate-500 hover:bg-slate-500/10 transition-transform ${
+                  showAccountMenu ? "rotate-180" : ""
+                }`}
               >
                 <MoreVertical size={16} />
               </button>
@@ -145,8 +164,8 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isDarkMode }) {
           <div
             className={`absolute bottom-20 left-4 right-4 border rounded-2xl shadow-2xl p-2 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200 ${
               isDarkMode
-                ? "bg-[#161b22] border-white/10"
-                : "bg-white border-slate-200"
+                ? "bg-[#161b22] border-white/10 shadow-black"
+                : "bg-white border-slate-200 shadow-slate-200"
             }`}
           >
             <button className="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-bold text-slate-500 hover:bg-slate-500/5 rounded-xl transition-colors">

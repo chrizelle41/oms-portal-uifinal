@@ -78,7 +78,6 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
     });
 
     return lines.map((line, i) => {
-      // Check if line is formatted as an audit card (Title | Status | Info)
       if (line.includes("|")) {
         const parts = line.split("|").map((s) => s.trim());
         if (parts.length >= 2) {
@@ -90,8 +89,8 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
               key={i}
               className={`my-3 p-4 rounded-2xl border shadow-sm transition-all animate-in zoom-in-95 duration-200 ${
                 isPresent
-                  ? "bg-[#F0F4FF] border-blue-100 dark:bg-blue-500/5 dark:border-blue-500/20"
-                  : "bg-red-50 border-red-100 dark:bg-red-900/10 dark:border-red-900/20"
+                  ? "bg-blue-50/50 border-blue-100 dark:bg-blue-500/5 dark:border-blue-500/20"
+                  : "bg-red-50/50 border-red-100 dark:bg-red-900/10 dark:border-red-900/20"
               }`}
             >
               <div className="flex flex-col gap-1">
@@ -112,7 +111,7 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
                         : "bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400"
                     }`}
                   >
-                    {status}
+                    {isPresent ? "Found" : "Missing"}
                   </span>
                 </div>
 
@@ -120,13 +119,15 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
                   {info ||
                     (isPresent
                       ? "Verified in Azure storage."
-                      : "Missing from O&M database.")}
+                      : "Action required: Document not found.")}
                 </p>
 
                 {isPresent && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
+                      // We pass the title, but the parent should handle
+                      // finding the actual nested path
                       if (typeof onOpenDoc === "function") {
                         onOpenDoc(title);
                       }

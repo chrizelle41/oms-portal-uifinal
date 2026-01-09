@@ -8,7 +8,6 @@ import {
   Loader2,
   Trash2,
   Camera,
-  Globe,
   Check,
   AlertCircle,
   ChevronLeft,
@@ -22,11 +21,10 @@ export default function AssetDetailsPage({
   onPreview,
   apiBase,
 }) {
-  const { assetId } = useParams(); // Virtual folder name from URL
+  const { assetId } = useParams();
   const navigate = useNavigate();
   const bannerInputRef = useRef(null);
 
-  // States
   const [currentAsset, setCurrentAsset] = useState(null);
   const [tempName, setTempName] = useState("");
   const [tempImg, setTempImg] = useState("");
@@ -34,41 +32,39 @@ export default function AssetDetailsPage({
   const [localDocs, setLocalDocs] = useState([]);
   const [isSyncing, setIsSyncing] = useState(true);
 
-  // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // UI States
   const [showDeleteAssetModal, setShowDeleteAssetModal] = useState(false);
   const [docToDelete, setDocToDelete] = useState(null);
 
-  // --- EFFECT: ASSET INITIALIZATION & BLOB FETCHING ---
   useEffect(() => {
     const initializeAsset = async () => {
-      if (!portfolioData.assets || portfolioData.assets.length === 0) {
+      // SAFE CHECK: Ensure assets exist before looking
+      if (!portfolioData?.assets || portfolioData.assets.length === 0) {
         return;
       }
 
       setIsSyncing(true);
 
-      // Match virtual folder name
+      // Match virtual folder name with Optional Chaining
       const asset = portfolioData.assets.find(
-        (a) => String(a.folder_name) === String(assetId)
+        (a) => String(a?.folder_name) === String(assetId)
       );
 
       if (asset) {
         setCurrentAsset(asset);
-        setTempName(asset.name);
-        setTempImg(asset.img);
+        setTempName(asset?.name || "");
+        setTempImg(asset?.img || "");
 
         try {
-          // Fetch blobs for this folder prefix from Azure via Backend
+          // This fetches from Input_Documents/{assetId}/ based on your main.py logic
           const response = await fetch(
             `${apiBase}/portfolio/${asset.folder_name}/docs`
           );
           if (response.ok) {
             const blobs = await response.json();
-            setLocalDocs(blobs);
+            setLocalDocs(Array.isArray(blobs) ? blobs : []);
           }
         } catch (error) {
           console.error("Error fetching blobs:", error);
@@ -78,9 +74,7 @@ export default function AssetDetailsPage({
     };
 
     initializeAsset();
-  }, [assetId, portfolioData.assets, apiBase]);
-
-  // --- HANDLERS ---
+  }, [assetId, portfolioData?.assets, apiBase]);
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
@@ -117,7 +111,7 @@ export default function AssetDetailsPage({
                 id: result.document_id,
                 name: result.filename,
                 cat: result.system,
-                previewUrl: result.previewUrl, // SAS link from Azure
+                previewUrl: result.previewUrl,
                 date: result.date,
                 isLocal: false,
               }
@@ -133,7 +127,7 @@ export default function AssetDetailsPage({
   const handleFinishEditing = async () => {
     try {
       const response = await fetch(
-        `${apiBase}/portfolio/assets/${currentAsset.folder_name}`,
+        `${apiBase}/portfolio/assets/${currentAsset?.folder_name}`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -159,7 +153,7 @@ export default function AssetDetailsPage({
   const confirmDeleteAsset = async () => {
     try {
       const response = await fetch(
-        `${apiBase}/portfolio/assets/${currentAsset.folder_name}`,
+        `${apiBase}/portfolio/assets/${currentAsset?.folder_name}`,
         { method: "DELETE" }
       );
       if (response.ok) {
@@ -177,9 +171,9 @@ export default function AssetDetailsPage({
   };
 
   const handleDeleteDocument = async () => {
-    if (!docToDelete) return;
+    if (!docToDelete || !currentAsset?.folder_name) return;
     try {
-      // Use the filename for the blob deletion endpoint
+      // Updated to match the nested deletion logic in main.py
       const response = await fetch(
         `${apiBase}/portfolio/${currentAsset.folder_name}/docs/${docToDelete.name}`,
         { method: "DELETE" }
@@ -193,19 +187,17 @@ export default function AssetDetailsPage({
     }
   };
 
-  // Pagination Calc
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = localDocs.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(localDocs.length / itemsPerPage);
 
-  // Loading/Error States
   if (isSyncing && !currentAsset) {
     return (
       <div className="h-full flex flex-col items-center justify-center p-20">
         <Loader2 className="animate-spin text-[#4F6EF7] mb-4" size={40} />
         <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-          Connecting to Azure...
+          Syncing Input_Documents...
         </p>
       </div>
     );
@@ -232,7 +224,6 @@ export default function AssetDetailsPage({
 
   return (
     <div className="flex flex-col min-h-screen animate-in fade-in duration-500 pb-20 max-w-full overflow-x-hidden relative">
-      {/* Header Actions */}
       <div className="flex items-center justify-between mb-6 shrink-0 px-2">
         <button
           onClick={() => navigate("/portfolio")}
@@ -248,7 +239,6 @@ export default function AssetDetailsPage({
         </button>
       </div>
 
-      {/* Hero Banner Section */}
       <div className="relative h-72 rounded-[3rem] overflow-hidden mb-10 shadow-2xl shrink-0 bg-slate-800">
         <img
           src={tempImg}
@@ -288,7 +278,7 @@ export default function AssetDetailsPage({
                 />
               ) : (
                 <h2 className="text-5xl font-black text-white leading-tight">
-                  {tempName}
+                  {currentAsset?.name}
                 </h2>
               )}
               <button
@@ -309,7 +299,6 @@ export default function AssetDetailsPage({
         </div>
       </div>
 
-      {/* Documents Table */}
       <div
         className={`rounded-[3rem] border flex flex-col ${
           isDarkMode
@@ -358,9 +347,7 @@ export default function AssetDetailsPage({
                       </div>
                     </td>
                     <td className="px-10 py-8">
-                      <span
-                        className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest bg-slate-500/10 text-slate-500`}
-                      >
+                      <span className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest bg-slate-500/10 text-slate-500">
                         {doc.cat}
                       </span>
                     </td>
@@ -391,7 +378,6 @@ export default function AssetDetailsPage({
           </table>
         </div>
 
-        {/* Pagination */}
         {totalPages > 1 && (
           <div className="p-8 border-t border-inherit flex justify-between items-center bg-inherit rounded-b-[3rem]">
             <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
@@ -417,7 +403,7 @@ export default function AssetDetailsPage({
         )}
       </div>
 
-      {/* Modals */}
+      {/* Modal remains same but with safety guards */}
       {showDeleteAssetModal && (
         <div
           className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
