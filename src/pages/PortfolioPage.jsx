@@ -135,9 +135,13 @@ export default function PortfolioPage({
     setOpenMenuId(null);
   };
 
-  const filteredAssets = (portfolioData.assets || []).filter((a) => {
+  const filteredAssets = (portfolioData?.assets || []).filter((a) => {
+    if (!a) return false; // Skip empty assets
+
     const searchTerm = globalSearch?.toLowerCase() || "";
+    // Added ?. to handle missing names
     const matchesSearch = (a.name?.toLowerCase() || "").includes(searchTerm);
+
     if (!matchesSearch) return false;
 
     if (activeFilter === "Favourites")
@@ -216,10 +220,12 @@ export default function PortfolioPage({
         <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6 mb-12">
           {filteredAssets.map((asset) => (
             <div
-              key={asset.id}
-              onClick={() =>
-                navigate(`/portfolio/${asset.folder_name || asset.id}`)
-              }
+              key={asset?.id || asset?.folder_name || Math.random()}
+              onClick={() => {
+                // Only navigate if folder_name exists
+                if (asset?.folder_name)
+                  navigate(`/portfolio/${asset.folder_name}`);
+              }}
               className="contents"
             >
               <AssetCard
