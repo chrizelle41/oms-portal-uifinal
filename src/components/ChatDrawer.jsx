@@ -5,23 +5,16 @@ import {
   MessageSquare,
   Loader2,
   FileText,
-  Info,
   Sparkles,
 } from "lucide-react";
 
-export default function ChatDrawer({
-  isOpen,
-  setIsOpen,
-  onAddAsset,
-  onOpenDoc,
-  apiBase, // <--- Received from App.jsx
-}) {
+export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
   const [query, setQuery] = useState("");
   const [messages, setMessages] = useState([
     {
       role: "ai",
       content:
-        "Hi! I am your O&M assistant powered by Azure AI. Ask me anything about your documents.",
+        "Hi! I am your O&M assistant. Ask me anything about your documents.",
     },
   ]);
   const [loading, setLoading] = useState(false);
@@ -40,7 +33,6 @@ export default function ChatDrawer({
     setLoading(true);
 
     try {
-      // UPDATED: Use dynamic apiBase for the /ask endpoint
       const response = await fetch(`${apiBase}/ask`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -61,7 +53,7 @@ export default function ChatDrawer({
         {
           role: "ai",
           content:
-            "I'm having trouble connecting to the Azure audit server. Please check your connection.",
+            "I'm having trouble connecting to the audit server. Please check your connection.",
         },
       ]);
     } finally {
@@ -70,7 +62,6 @@ export default function ChatDrawer({
   };
 
   const renderMessageContent = (content) => {
-    // Safety check if content is undefined
     if (!content) return null;
 
     const lines = content.split("\n").filter((line) => {
@@ -112,8 +103,8 @@ export default function ChatDrawer({
                   <span
                     className={`text-[9px] px-1.5 py-0.5 rounded font-black uppercase tracking-tighter ${
                       isPresent
-                        ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
-                        : "bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400"
+                        ? "bg-emerald-100 text-emerald-600"
+                        : "bg-red-100 text-red-600"
                     }`}
                   >
                     {status}
@@ -132,7 +123,7 @@ export default function ChatDrawer({
                         onOpenDoc(title);
                       }
                     }}
-                    className="w-fit flex items-center gap-1.5 mt-3 text-[10px] font-black uppercase tracking-wider text-[#4F6EF7] hover:text-blue-400 transition-colors"
+                    className="w-fit flex items-center gap-1.5 mt-3 text-[10px] font-black uppercase tracking-wider text-[#4F6EF7] hover:text-blue-600 transition-colors"
                   >
                     <FileText size={14} /> Open Document
                   </button>
@@ -171,8 +162,8 @@ export default function ChatDrawer({
               <span className="font-bold text-slate-900 dark:text-white leading-none">
                 Audit Assistant
               </span>
-              <span className="text-[9px] text-emerald-500 font-bold uppercase tracking-widest mt-1">
-                Azure OpenAI Live
+              <span className="text-[9px] text-blue-500 font-bold uppercase tracking-widest mt-1">
+                AI Powered Audit
               </span>
             </div>
           </div>
@@ -221,7 +212,7 @@ export default function ChatDrawer({
           {loading && (
             <div className="flex items-center gap-3 text-slate-400 text-[11px] px-12 font-bold uppercase tracking-widest">
               <Loader2 className="animate-spin text-[#4F6EF7]" size={16} />
-              Analyzing context...
+              Reviewing documents...
             </div>
           )}
         </div>
@@ -234,7 +225,7 @@ export default function ChatDrawer({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSend()}
-              placeholder="Query documents (e.g. 'Show me HVAC gaps')"
+              placeholder="Ask about O&M gaps..."
               className="w-full pl-4 pr-12 py-3.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl outline-none focus:ring-2 focus:ring-[#4F6EF7]/50 transition-all text-sm dark:text-white"
             />
             <button

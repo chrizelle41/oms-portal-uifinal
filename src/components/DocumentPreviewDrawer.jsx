@@ -1,13 +1,5 @@
 import React, { useState } from "react";
-import {
-  X,
-  Database,
-  User,
-  Calendar,
-  Info,
-  FileText,
-  CheckCircle,
-} from "lucide-react";
+import { X, Database, User, Calendar, Info, FileText } from "lucide-react";
 
 export default function DocumentPreviewDrawer({
   document,
@@ -18,6 +10,7 @@ export default function DocumentPreviewDrawer({
 
   if (!document) return null;
 
+  // --- DYNAMIC BACKEND URL ---
   const API_BASE_URL =
     window.location.hostname === "localhost"
       ? "http://localhost:8000"
@@ -41,7 +34,7 @@ export default function DocumentPreviewDrawer({
           isDarkMode ? "bg-[#0B0F1A] text-white" : "bg-white text-slate-900"
         }`}
       >
-        {/* Main Preview */}
+        {/* Main Preview Section */}
         <div className="flex-1 flex flex-col border-r border-slate-200 dark:border-white/10">
           {/* Header */}
           <div className="p-6 border-b border-inherit flex justify-between items-center bg-inherit relative z-10">
@@ -63,7 +56,7 @@ export default function DocumentPreviewDrawer({
             </span>
           </div>
 
-          {/* PDF Viewer */}
+          {/* Iframe Viewport */}
           <div
             className={`flex-1 overflow-hidden p-4 md:p-8 flex justify-center ${
               isDarkMode ? "bg-black/40" : "bg-slate-100"
@@ -110,49 +103,48 @@ export default function DocumentPreviewDrawer({
             </button>
           </div>
 
-          {/* Content */}
+          {/* Sidebar Content */}
           <div className="p-8 space-y-8 overflow-y-auto no-scrollbar">
             {activeTab === "details" ? (
               <>
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-[#4F6EF7] mb-4">
-                    File Information
+                    File Details
                   </p>
                   <div className="space-y-4">
                     <DetailRow
                       icon={<Database size={14} />}
-                      label="Size"
+                      label="File Size"
                       value={document.size}
                     />
                     <DetailRow
                       icon={<User size={14} />}
-                      label="Uploaded By"
+                      label="Source"
                       value={document.user || "System"}
                     />
                     <DetailRow
                       icon={<Calendar size={14} />}
-                      label="Date"
+                      label="Last Modified"
                       value={document.date}
                     />
                   </div>
                 </div>
 
-                {/* Neutral Summary */}
                 <div
                   className={`p-5 rounded-2xl border ${
                     isDarkMode
-                      ? "bg-slate-500/5 border-white/10"
+                      ? "bg-white/5 border-white/10"
                       : "bg-white border-slate-200"
                   }`}
                 >
                   <div className="flex items-center gap-2 text-slate-500 mb-3 font-bold text-[10px] uppercase tracking-widest">
-                    <Info size={14} /> Summary
+                    <Info size={14} /> Description
                   </div>
                   <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400 font-medium italic">
-                    This {document.doc_type || "document"} belongs to the{" "}
-                    {document.cat} category.
+                    This {document.doc_type || "document"} is part of the{" "}
+                    {document.cat} database.
                     {document.asset_hint
-                      ? ` Reference noted: ${document.asset_hint}.`
+                      ? ` Cross-reference: ${document.asset_hint}.`
                       : ""}
                   </p>
                 </div>
@@ -160,7 +152,7 @@ export default function DocumentPreviewDrawer({
             ) : (
               <>
                 <p className="text-[10px] font-black uppercase tracking-widest text-[#4F6EF7] mb-4">
-                  Metadata
+                  Properties
                 </p>
                 <div className="space-y-4">
                   <DetailRow
@@ -170,7 +162,7 @@ export default function DocumentPreviewDrawer({
                     highlight
                   />
                   <DetailRow
-                    icon={<CheckCircle size={14} />}
+                    icon={<Info size={14} />}
                     label="Category"
                     value={document.cat}
                   />
@@ -190,7 +182,7 @@ export default function DocumentPreviewDrawer({
   );
 }
 
-/* Helper Row */
+/* Helper Component */
 function DetailRow({ icon, label, value, highlight, italic }) {
   return (
     <div className="flex justify-between items-center text-[11px]">
