@@ -51,37 +51,32 @@ export default function App() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [filesRes, portfolioRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/files`),
-          fetch(`${API_BASE_URL}/portfolio`),
-        ]);
-
-        const filesData = await filesRes.json();
+        const portfolioRes = await fetch(`${API_BASE_URL}/portfolio`);
         const resData = await portfolioRes.json();
 
-        setFiles(Array.isArray(filesData) ? filesData : []);
-
-        // SAFETY CHECK: Ensure assets is always an array and contains valid objects
+        // Azure Saftey Check: Ensure we have an array
         const rawAssets = Array.isArray(resData?.assets) ? resData.assets : [];
 
-        const initializedAssets = rawAssets
-          .filter((asset) => asset && typeof asset === "object") // Remove nulls
-          .map((a) => ({
+        const initializedAssets = rawAssets.map((a) => {
+          // This line is the most important:
+          // It looks for folder_name, but falls back to id or name if Azure changed the key
+          const folderId = a?.folder_name || a?.id || a?.name || "unknown";
+
+          return {
             ...a,
-            id: a.id || a.folder_name || Math.random().toString(),
-            folder_name: a.folder_name || "unknown",
-            isFavorite: !!a.isFavorite,
+            folder_name: folderId, // We force it into folder_name so the rest of your app works
+            name: a?.name || folderId,
+            id: a?.id || folderId,
             status: a?.status || "active",
-          }));
+          };
+        });
 
         setPortfolioData({
-          stats: resData?.stats || { companies: 0, properties: 0, docs: 0 },
+          stats: resData?.stats || { properties: 0, docs: 0 },
           assets: initializedAssets,
         });
       } catch (err) {
-        console.error("Database sync failed:", err);
-        // Setting an empty state prevents the app from crashing on error
-        setPortfolioData({ stats: { properties: 0, docs: 0 }, assets: [] });
+        console.error("Azure Sync Error:", err);
       } finally {
         setLoading(false);
       }

@@ -15,7 +15,7 @@ import ChatDrawer from "../components/ChatDrawer";
 import DocumentPreviewDrawer from "../components/DocumentPreviewDrawer";
 
 export default function PortfolioPage({
-  loading, // Received from App.jsx
+  loading,
   globalSearch,
   portfolioData,
   setPortfolioData,
@@ -30,11 +30,28 @@ export default function PortfolioPage({
   const [archiveTarget, setArchiveTarget] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
-
   const [chatPreviewDoc, setChatPreviewDoc] = useState(null);
 
-  // --- HANDLERS ---
+  // ==========================================
+  // 🔍 DEBUGGING SECTION (ADD THIS HERE)
+  // ==========================================
+  console.log("--- DEBUG: PORTFOLIO DATA ---");
+  console.log("Loading State:", loading);
+  console.log("Raw Data:", portfolioData);
+  console.log("Assets Array:", portfolioData?.assets);
 
+  // If the page is blank, check if portfolioData is an HTML string (backend error)
+  if (
+    typeof portfolioData === "string" &&
+    portfolioData.includes("<!DOCTYPE")
+  ) {
+    console.error(
+      "CRITICAL: Backend returned HTML instead of JSON. Check Render logs for a crash."
+    );
+  }
+  // ==========================================
+
+  // --- HANDLERS ---
   const handleOpenDocFromChat = async (docTitle) => {
     try {
       const response = await fetch(`${apiBase}/files`);
@@ -73,12 +90,10 @@ export default function PortfolioPage({
   const handleConfirmAdd = async (newAssetData) => {
     if (isSyncing) return;
     setIsSyncing(true);
-
     const finalImageUrl =
       newAssetData.image && !newAssetData.image.startsWith("blob:")
         ? newAssetData.image
         : "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab";
-
     try {
       const response = await fetch(`${apiBase}/create-asset`, {
         method: "POST",
@@ -88,14 +103,11 @@ export default function PortfolioPage({
           image: finalImageUrl,
         }),
       });
-
       const result = await response.json();
-
       if (result.status === "success") {
         const refreshRes = await fetch(`${apiBase}/portfolio`);
         const updatedData = await refreshRes.json();
         setPortfolioData(updatedData);
-
         setIsAddModalOpen(false);
         setIsSyncing(false);
         navigate(`/portfolio/${result.folder_name}`);
@@ -110,7 +122,7 @@ export default function PortfolioPage({
     setPortfolioData((prev) => ({
       ...prev,
       assets: (prev.assets || []).map((a) =>
-        a.id === id ? { ...a, isFavorite: !a.isFavorite } : a
+        a && a.id === id ? { ...a, isFavorite: !a.isFavorite } : a
       ),
     }));
   };
@@ -119,7 +131,7 @@ export default function PortfolioPage({
     setPortfolioData((prev) => ({
       ...prev,
       assets: (prev.assets || []).map((a) =>
-        a.id === id
+        a && a.id === id
           ? {
               ...a,
               status: newStatus,
@@ -133,13 +145,12 @@ export default function PortfolioPage({
   };
 
   // --- DEFENSIVE FILTERING ---
-  // This ensures that even if an asset is undefined or null, the page won't crash
   const filteredAssets = (portfolioData?.assets || []).filter((a) => {
+    // If a is null or doesn't have folder_name, we skip it
     if (!a || !a.folder_name) return false;
 
     const searchTerm = globalSearch?.toLowerCase() || "";
     const matchesSearch = (a.name?.toLowerCase() || "").includes(searchTerm);
-
     if (!matchesSearch) return false;
 
     if (activeFilter === "Favourites")
@@ -149,7 +160,6 @@ export default function PortfolioPage({
   });
 
   // --- LOADING STATE ---
-  // If the App.jsx is still fetching, show the loader.
   if (loading) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-slate-500">
@@ -199,6 +209,7 @@ export default function PortfolioPage({
         <Building2 size={20} className="text-[#4F6EF7]" /> My Assets
       </div>
 
+      {/* Filter Tabs */}
       <div className="flex gap-3 mb-8 overflow-x-auto no-scrollbar shrink-0">
         {["All assets", "Favourites", "Archived"].map((f) => (
           <button
@@ -259,14 +270,13 @@ export default function PortfolioPage({
         </div>
       )}
 
-      {/* Side Panels */}
+      {/* Components */}
       <ChatDrawer
         isOpen={isChatOpen}
         setIsOpen={setIsChatOpen}
         onOpenDoc={handleOpenDocFromChat}
         apiBase={apiBase}
       />
-
       {chatPreviewDoc && (
         <DocumentPreviewDrawer
           document={chatPreviewDoc}
@@ -274,7 +284,6 @@ export default function PortfolioPage({
           isDarkMode={isDarkMode}
         />
       )}
-
       <AddAssetModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
@@ -285,10 +294,7 @@ export default function PortfolioPage({
       {archiveTarget && (
         <div
           className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            setArchiveTarget(null);
-          }}
+          onClick={() => setArchiveTarget(null)}
         >
           <div
             className="bg-white dark:bg-[#1c2128] w-full max-w-sm rounded-[2rem] p-8 border border-slate-200 dark:border-white/10 shadow-2xl text-center"
@@ -300,7 +306,7 @@ export default function PortfolioPage({
             <h2 className="text-xl font-bold dark:text-white mb-2">
               Archive Asset?
             </h2>
-            <p className="text-slate-500 text-sm mb-8 leading-relaxed">
+            <p className="text-slate-500 text-sm mb-8">
               Are you sure you want to archive <b>{archiveTarget.name}</b>?
             </p>
             <div className="flex gap-3">
@@ -312,7 +318,10 @@ export default function PortfolioPage({
               </button>
               <button
                 onClick={() =>
-                  handleArchiveStatus(archiveTarget.id, "archived")
+                  handleArchiveStatus(
+                    archiveTarget.id || archiveTarget.folder_name,
+                    "archived"
+                  )
                 }
                 className="flex-1 py-3 rounded-xl font-bold bg-red-50 text-red-500"
               >
