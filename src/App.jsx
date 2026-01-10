@@ -47,51 +47,45 @@ export default function App() {
 
   // Data Loading Logic
   useEffect(() => {
-   // Inside App.jsx -> fetchData function
-const fetchData = async () => {
-  setLoading(true);
-  try {
-    const [filesRes, portfolioRes] = await Promise.all([
-      fetch(`${API_BASE_URL}/files`),
-      fetch(`${API_BASE_URL}/portfolio`),
-    ]);
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [filesRes, portfolioRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/files`),
+          fetch(`${API_BASE_URL}/portfolio`),
+        ]);
 
-    const filesData = await filesRes.json();
-    const resData = await portfolioRes.json();
+        if (!filesRes.ok || !portfolioRes.ok)
+          throw new Error("Server responded with error");
 
-    setFiles(Array.isArray(filesData) ? filesData : []);
+        const filesData = await filesRes.json();
+        const resData = await portfolioRes.json();
 
-    // DEFENSIVE MAPPING: Filter out any null/undefined assets from the server
-    const rawAssets = Array.isArray(resData?.assets) ? resData.assets : [];
-    
-    const initializedAssets = rawAssets
-      .filter(a => a !== null && typeof a === 'object') // Remove garbage
-      .map((a) => ({
-        ...a,
-        id: a.id || a.folder_name || Math.random().toString(), // Ensure an ID exists
-        folder_name: a.folder_name || "", 
-        isFavorite: a.isFavorite || false,
-        status: a?.status || "active",
-        type: a?.type || "Commercial use",
-      }));
+        setFiles(Array.isArray(filesData) ? filesData : []);
 
-    setPortfolioData({
-      stats: resData?.stats || { companies: 0, properties: 0, docs: 0 },
-      assets: initializedAssets,
-    });
-  } catch (err) {
-    console.error("Critical: Database sync failed:", err);
-    // Set empty state on error to prevent "undefined" crashes
-    setPortfolioData({ stats: { properties: 0, docs: 0 }, assets: [] });
-  } finally {
-    setLoading(false);
-  }
-};
+        const initializedAssets = (resData?.assets || []).map((a) => ({
+          ...a,
+          isFavorite: false,
+          status: a?.status || "active",
+          type: a?.type || "Commercial use",
+        }));
 
-  // --- UPDATED PREVIEW LOGIC FOR AZURE BLOB (WITH NESTED PATH SUPPORT) ---
+        setPortfolioData({
+          stats: resData?.stats || { companies: 0, properties: 0, docs: 0 },
+          assets: initializedAssets,
+        });
+      } catch (err) {
+        console.error("Critical: Database sync failed:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  // --- PREVIEW LOGIC ---
   const handleOpenPreview = (file) => {
     if (!file) return;
-
     setSelectedDoc({
       id: file?.document_id || file?.id,
       name: file?.filename || file?.name,
@@ -102,7 +96,6 @@ const fetchData = async () => {
       date: file?.date || "Verified",
       asset_hint: file?.asset_hint || "",
       isLocal: false,
-      // SAS Link Priority
       previewUrl:
         file?.previewUrl ||
         `${API_BASE_URL}/preview/${encodeURIComponent(
@@ -114,7 +107,6 @@ const fetchData = async () => {
   const handleOpenDocFromChat = async (docTitle) => {
     try {
       const cleanTitle = docTitle.toLowerCase().trim();
-      // Use the existing files state for matching to save an API call
       const match = files.find((f) => {
         const fname = (f?.filename || f?.name || "").toLowerCase();
         return (
@@ -122,7 +114,6 @@ const fetchData = async () => {
           cleanTitle.includes(fname.replace(".pdf", ""))
         );
       });
-
       if (match) {
         handleOpenPreview(match);
       }
@@ -131,7 +122,7 @@ const fetchData = async () => {
     }
   };
 
-  // --- DEFENSIVE STATS CALCULATION ---
+  // --- STATS CALCULATION ---
   const stats = useMemo(
     () => ({
       totalDocs: files?.length || 0,
@@ -205,6 +196,7 @@ const fetchData = async () => {
                   path="/portfolio"
                   element={
                     <PortfolioPage
+                      loading={loading}
                       globalSearch={globalSearch}
                       portfolioData={portfolioData}
                       setPortfolioData={setPortfolioData}
@@ -229,6 +221,7 @@ const fetchData = async () => {
               </Routes>
             </div>
           </main>
+
           <div
             className={`transition-all duration-300 ease-in-out overflow-hidden border-l backdrop-blur-2xl ${
               isAiOpen ? "w-96 opacity-100" : "w-0 opacity-0 border-none"
@@ -246,6 +239,7 @@ const fetchData = async () => {
             />
           </div>
         </div>
+
         {selectedDoc && (
           <DocumentPreviewDrawer
             document={selectedDoc}
