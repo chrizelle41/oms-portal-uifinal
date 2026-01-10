@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -25,12 +25,12 @@ export default function AssetDetailsPage({
   const navigate = useNavigate();
   const bannerInputRef = useRef(null);
 
-  const [currentAsset, setCurrentAsset] = useState(null);
+  // --- STATE ---
   const [tempName, setTempName] = useState("");
   const [tempImg, setTempImg] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [localDocs, setLocalDocs] = useState([]);
-  const [isSyncing, setIsSyncing] = useState(true);
+  const [isSyncingDocs, setIsSyncingDocs] = useState(true);
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -38,46 +38,50 @@ export default function AssetDetailsPage({
   const [showDeleteAssetModal, setShowDeleteAssetModal] = useState(false);
   const [docToDelete, setDocToDelete] = useState(null);
 
-  useEffect(() => {
-    const initializeAsset = async () => {
-      // SAFE CHECK: Ensure assets exist before looking
-      if (!portfolioData?.assets || portfolioData.assets.length === 0) {
-        return;
-      }
-
-      setIsSyncing(true);
-
-      // Match virtual folder name with Optional Chaining
-      const asset = portfolioData.assets.find(
+  // --- 1. SAFE ASSET LOOKUP ---
+  // We use useMemo to find the asset. This prevents the "undefined" crash
+  // by ensuring we always have a stable reference to the asset or null.
+  const currentAsset = useMemo(() => {
+    if (!portfolioData?.assets) return null;
+    return (
+      portfolioData.assets.find(
         (a) => String(a?.folder_name) === String(assetId)
+      ) || null
+    );
+  }, [portfolioData?.assets, assetId]);
+
+  // --- 2. SYNC LOCAL STATE WITH ASSET ---
+  useEffect(() => {
+    if (currentAsset) {
+      setTempName(currentAsset.name || "");
+      setTempImg(currentAsset.img || "");
+      fetchDocuments();
+    }
+  }, [currentAsset]);
+
+  const fetchDocuments = async () => {
+    if (!currentAsset?.folder_name) return;
+    setIsSyncingDocs(true);
+    try {
+      const response = await fetch(
+        `${apiBase}/portfolio/${currentAsset.folder_name}/docs`
       );
-
-      if (asset) {
-        setCurrentAsset(asset);
-        setTempName(asset?.name || "");
-        setTempImg(asset?.img || "");
-
-        try {
-          // This fetches from Input_Documents/{assetId}/ based on your main.py logic
-          const response = await fetch(
-            `${apiBase}/portfolio/${asset.folder_name}/docs`
-          );
-          if (response.ok) {
-            const blobs = await response.json();
-            setLocalDocs(Array.isArray(blobs) ? blobs : []);
-          }
-        } catch (error) {
-          console.error("Error fetching blobs:", error);
-        }
+      if (response.ok) {
+        const blobs = await response.json();
+        setLocalDocs(Array.isArray(blobs) ? blobs : []);
       }
-      setIsSyncing(false);
-    };
+    } catch (error) {
+      console.error("Error fetching documents:", error);
+    } finally {
+      setIsSyncingDocs(false);
+    }
+  };
 
-    initializeAsset();
-  }, [assetId, portfolioData?.assets, apiBase]);
+  // --- 3. HANDLERS (With Safety Guards) ---
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
+    // Safety Guard: Ensure we have a folder name before hitting the API
     if (!file || !currentAsset?.folder_name) return;
 
     const tempId = Date.now();
@@ -125,9 +129,10 @@ export default function AssetDetailsPage({
   };
 
   const handleFinishEditing = async () => {
+    if (!currentAsset?.folder_name) return;
     try {
       const response = await fetch(
-        `${apiBase}/portfolio/assets/${currentAsset?.folder_name}`,
+        `${apiBase}/portfolio/assets/${currentAsset.folder_name}`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -151,15 +156,16 @@ export default function AssetDetailsPage({
   };
 
   const confirmDeleteAsset = async () => {
+    if (!currentAsset?.folder_name) return;
     try {
       const response = await fetch(
-        `${apiBase}/portfolio/assets/${currentAsset?.folder_name}`,
+        `${apiBase}/portfolio/assets/${currentAsset.folder_name}`,
         { method: "DELETE" }
       );
       if (response.ok) {
         setPortfolioData((prev) => ({
           ...prev,
-          assets: prev.assets.filter(
+          assets: (prev.assets || []).filter(
             (a) => a.folder_name !== currentAsset.folder_name
           ),
         }));
@@ -173,7 +179,6 @@ export default function AssetDetailsPage({
   const handleDeleteDocument = async () => {
     if (!docToDelete || !currentAsset?.folder_name) return;
     try {
-      // Updated to match the nested deletion logic in main.py
       const response = await fetch(
         `${apiBase}/portfolio/${currentAsset.folder_name}/docs/${docToDelete.name}`,
         { method: "DELETE" }
@@ -187,23 +192,31 @@ export default function AssetDetailsPage({
     }
   };
 
+  // --- PAGINATION ---
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = localDocs.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(localDocs.length / itemsPerPage);
 
-  if (isSyncing && !currentAsset) {
+  // --- RENDER LOGIC ---
+
+  // Loading state (Wait for portfolioData to exist)
+  if (
+    !portfolioData?.assets ||
+    (portfolioData.assets.length === 0 && isSyncingDocs)
+  ) {
     return (
       <div className="h-full flex flex-col items-center justify-center p-20">
         <Loader2 className="animate-spin text-[#4F6EF7] mb-4" size={40} />
         <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-          Syncing Input_Documents...
+          Syncing Asset Data...
         </p>
       </div>
     );
   }
 
-  if (!isSyncing && !currentAsset) {
+  // Error state (Asset truly doesn't exist)
+  if (!currentAsset) {
     return (
       <div className="p-20 text-center flex flex-col items-center gap-6">
         <div className="w-16 h-16 bg-red-100 dark:bg-red-500/10 rounded-2xl flex items-center justify-center text-red-500">
@@ -224,6 +237,7 @@ export default function AssetDetailsPage({
 
   return (
     <div className="flex flex-col min-h-screen animate-in fade-in duration-500 pb-20 max-w-full overflow-x-hidden relative">
+      {/* Header Navigation */}
       <div className="flex items-center justify-between mb-6 shrink-0 px-2">
         <button
           onClick={() => navigate("/portfolio")}
@@ -239,9 +253,13 @@ export default function AssetDetailsPage({
         </button>
       </div>
 
+      {/* Banner Section */}
       <div className="relative h-72 rounded-[3rem] overflow-hidden mb-10 shadow-2xl shrink-0 bg-slate-800">
         <img
-          src={tempImg}
+          src={
+            tempImg ||
+            "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab"
+          }
           className={`w-full h-full object-cover opacity-80 transition-all duration-700 ${
             isEditing ? "brightness-50" : ""
           }`}
@@ -299,6 +317,7 @@ export default function AssetDetailsPage({
         </div>
       </div>
 
+      {/* Documents Table */}
       <div
         className={`rounded-[3rem] border flex flex-col ${
           isDarkMode
@@ -329,7 +348,16 @@ export default function AssetDetailsPage({
               </tr>
             </thead>
             <tbody className="divide-y divide-inherit">
-              {currentItems.length > 0 ? (
+              {isSyncingDocs && localDocs.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="px-10 py-24 text-center">
+                    <Loader2 className="animate-spin mx-auto text-slate-400 mb-2" />
+                    <span className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">
+                      Fetching Blobs...
+                    </span>
+                  </td>
+                </tr>
+              ) : currentItems.length > 0 ? (
                 currentItems.map((doc) => (
                   <tr
                     key={doc.id}
@@ -403,7 +431,7 @@ export default function AssetDetailsPage({
         )}
       </div>
 
-      {/* Modal remains same but with safety guards */}
+      {/* MODALS */}
       {showDeleteAssetModal && (
         <div
           className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
@@ -419,6 +447,9 @@ export default function AssetDetailsPage({
             <h2 className="text-xl font-bold text-center dark:text-white mb-2 uppercase tracking-tight">
               Delete Asset?
             </h2>
+            <p className="text-center text-slate-500 text-sm">
+              This will permanently delete all blobs in this folder.
+            </p>
             <div className="flex gap-3 mt-8">
               <button
                 onClick={() => setShowDeleteAssetModal(false)}

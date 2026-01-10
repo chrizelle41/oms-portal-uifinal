@@ -47,41 +47,46 @@ export default function App() {
 
   // Data Loading Logic
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const [filesRes, portfolioRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/files`),
-          fetch(`${API_BASE_URL}/portfolio`),
-        ]);
+   // Inside App.jsx -> fetchData function
+const fetchData = async () => {
+  setLoading(true);
+  try {
+    const [filesRes, portfolioRes] = await Promise.all([
+      fetch(`${API_BASE_URL}/files`),
+      fetch(`${API_BASE_URL}/portfolio`),
+    ]);
 
-        if (!filesRes.ok || !portfolioRes.ok)
-          throw new Error("Server responded with error");
+    const filesData = await filesRes.json();
+    const resData = await portfolioRes.json();
 
-        const filesData = await filesRes.json();
-        const resData = await portfolioRes.json();
+    setFiles(Array.isArray(filesData) ? filesData : []);
 
-        setFiles(Array.isArray(filesData) ? filesData : []);
+    // DEFENSIVE MAPPING: Filter out any null/undefined assets from the server
+    const rawAssets = Array.isArray(resData?.assets) ? resData.assets : [];
+    
+    const initializedAssets = rawAssets
+      .filter(a => a !== null && typeof a === 'object') // Remove garbage
+      .map((a) => ({
+        ...a,
+        id: a.id || a.folder_name || Math.random().toString(), // Ensure an ID exists
+        folder_name: a.folder_name || "", 
+        isFavorite: a.isFavorite || false,
+        status: a?.status || "active",
+        type: a?.type || "Commercial use",
+      }));
 
-        const initializedAssets = (resData?.assets || []).map((a) => ({
-          ...a,
-          isFavorite: false,
-          status: a?.status || "active",
-          type: a?.type || "Commercial use",
-        }));
-
-        setPortfolioData({
-          stats: resData?.stats || { companies: 0, properties: 0, docs: 0 },
-          assets: initializedAssets,
-        });
-      } catch (err) {
-        console.error("Critical: Database sync failed:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+    setPortfolioData({
+      stats: resData?.stats || { companies: 0, properties: 0, docs: 0 },
+      assets: initializedAssets,
+    });
+  } catch (err) {
+    console.error("Critical: Database sync failed:", err);
+    // Set empty state on error to prevent "undefined" crashes
+    setPortfolioData({ stats: { properties: 0, docs: 0 }, assets: [] });
+  } finally {
+    setLoading(false);
+  }
+};
 
   // --- UPDATED PREVIEW LOGIC FOR AZURE BLOB (WITH NESTED PATH SUPPORT) ---
   const handleOpenPreview = (file) => {
