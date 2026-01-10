@@ -47,6 +47,7 @@ export default function App() {
 
   // Data Loading Logic
   useEffect(() => {
+    // Inside App.jsx
     const fetchData = async () => {
       setLoading(true);
       try {
@@ -55,27 +56,32 @@ export default function App() {
           fetch(`${API_BASE_URL}/portfolio`),
         ]);
 
-        if (!filesRes.ok || !portfolioRes.ok)
-          throw new Error("Server responded with error");
-
         const filesData = await filesRes.json();
         const resData = await portfolioRes.json();
 
         setFiles(Array.isArray(filesData) ? filesData : []);
 
-        const initializedAssets = (resData?.assets || []).map((a) => ({
-          ...a,
-          isFavorite: false,
-          status: a?.status || "active",
-          type: a?.type || "Commercial use",
-        }));
+        // SAFETY CHECK: Ensure assets is always an array and contains valid objects
+        const rawAssets = Array.isArray(resData?.assets) ? resData.assets : [];
+
+        const initializedAssets = rawAssets
+          .filter((asset) => asset && typeof asset === "object") // Remove nulls
+          .map((a) => ({
+            ...a,
+            id: a.id || a.folder_name || Math.random().toString(),
+            folder_name: a.folder_name || "unknown",
+            isFavorite: !!a.isFavorite,
+            status: a?.status || "active",
+          }));
 
         setPortfolioData({
           stats: resData?.stats || { companies: 0, properties: 0, docs: 0 },
           assets: initializedAssets,
         });
       } catch (err) {
-        console.error("Critical: Database sync failed:", err);
+        console.error("Database sync failed:", err);
+        // Setting an empty state prevents the app from crashing on error
+        setPortfolioData({ stats: { properties: 0, docs: 0 }, assets: [] });
       } finally {
         setLoading(false);
       }
