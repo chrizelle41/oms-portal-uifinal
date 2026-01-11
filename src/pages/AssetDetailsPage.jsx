@@ -22,6 +22,7 @@ export default function AssetDetailsPage({
   apiBase,
 }) {
   const { assetId } = useParams();
+  if (!assetId) return <div>Invalid Asset ID</div>;
   const navigate = useNavigate();
   const bannerInputRef = useRef(null);
 

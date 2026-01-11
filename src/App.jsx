@@ -51,32 +51,48 @@ export default function App() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const portfolioRes = await fetch(`${API_BASE_URL}/portfolio`);
+        const [filesRes, portfolioRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/files`),
+          fetch(`${API_BASE_URL}/portfolio`),
+        ]);
+
+        if (!filesRes.ok || !portfolioRes.ok)
+          throw new Error("API Response Error");
+
+        const filesData = await filesRes.json();
         const resData = await portfolioRes.json();
 
-        // Azure Saftey Check: Ensure we have an array
+        setFiles(Array.isArray(filesData) ? filesData : []);
+
+        // --- CRITICAL CLEANING STEP ---
         const rawAssets = Array.isArray(resData?.assets) ? resData.assets : [];
 
-        const initializedAssets = rawAssets.map((a) => {
-          // This line is the most important:
-          // It looks for folder_name, but falls back to id or name if Azure changed the key
-          const folderId = a?.folder_name || a?.id || a?.name || "unknown";
+        const cleanedAssets = rawAssets
+          .filter((a) => a !== null && typeof a === "object") // Remove null entries
+          .map((a) => {
+            // Find ANY possible identifier to use as folder_name
+            const fallbackId =
+              a.id || a.name || Math.random().toString(36).substr(2, 9);
 
-          return {
-            ...a,
-            folder_name: folderId, // We force it into folder_name so the rest of your app works
-            name: a?.name || folderId,
-            id: a?.id || folderId,
-            status: a?.status || "active",
-          };
-        });
+            return {
+              ...a,
+              // If folder_name is missing, the app crashes. We MUST ensure it exists.
+              folder_name: a.folder_name || a.prefix || a.path || fallbackId,
+              name: a.name || a.folder_name || "Unnamed Asset",
+              id: a.id || a.folder_name || fallbackId,
+              status: a.status || "active",
+              isFavorite: !!a.isFavorite,
+              docs: a.docs || 0,
+            };
+          })
+          .filter((a) => a.folder_name); // Final safety check: must have a folder_name
 
         setPortfolioData({
-          stats: resData?.stats || { properties: 0, docs: 0 },
-          assets: initializedAssets,
+          stats: resData?.stats || { companies: 0, properties: 0, docs: 0 },
+          assets: cleanedAssets,
         });
       } catch (err) {
-        console.error("Azure Sync Error:", err);
+        console.error("Critical: Sync failed:", err);
       } finally {
         setLoading(false);
       }
