@@ -119,27 +119,35 @@ export default function PortfolioPage({
   };
 
   const handleFavorite = (id) => {
-    setPortfolioData((prev) => ({
-      ...prev,
-      assets: (prev.assets || []).map((a) =>
-        a && a.id === id ? { ...a, isFavorite: !a.isFavorite } : a
-      ),
-    }));
+    if (!id) return; // Guard against null IDs
+    setPortfolioData((prev) => {
+      if (!prev || !prev.assets) return prev; // Guard against null state
+      return {
+        ...prev,
+        assets: prev.assets.map((a) => {
+          if (!a || (a.id !== id && a.folder_name !== id)) return a;
+          return { ...a, isFavorite: !a?.isFavorite };
+        }),
+      };
+    });
   };
 
   const handleArchiveStatus = (id, newStatus) => {
-    setPortfolioData((prev) => ({
-      ...prev,
-      assets: (prev.assets || []).map((a) =>
-        a && a.id === id
-          ? {
-              ...a,
-              status: newStatus,
-              isFavorite: newStatus === "archived" ? false : a.isFavorite,
-            }
-          : a
-      ),
-    }));
+    if (!id) return;
+    setPortfolioData((prev) => {
+      if (!prev || !prev.assets) return prev;
+      return {
+        ...prev,
+        assets: prev.assets.map((a) => {
+          if (!a || (a.id !== id && a.folder_name !== id)) return a;
+          return {
+            ...a,
+            status: newStatus,
+            isFavorite: newStatus === "archived" ? false : !!a?.isFavorite,
+          };
+        }),
+      };
+    });
     setArchiveTarget(null);
     setOpenMenuId(null);
   };

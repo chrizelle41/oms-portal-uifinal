@@ -130,7 +130,9 @@ export default function AssetDetailsPage({
   };
 
   const handleFinishEditing = async () => {
+    // Use optional chaining inside the guard
     if (!currentAsset?.folder_name) return;
+
     try {
       const response = await fetch(
         `${apiBase}/portfolio/assets/${currentAsset.folder_name}`,
@@ -144,30 +146,35 @@ export default function AssetDetailsPage({
 
       setPortfolioData((prev) => ({
         ...prev,
-        assets: prev.assets.map((a) =>
-          a.folder_name === currentAsset.folder_name
+        // CRITICAL FIX: Add a check for 'a' inside the map
+        assets: (prev?.assets || []).map((a) =>
+          a && a.folder_name === currentAsset?.folder_name
             ? { ...a, name: tempName, img: tempImg }
             : a
         ),
       }));
       setIsEditing(false);
     } catch (error) {
-      alert("Save failed.");
+      console.error("Save failed:", error);
     }
   };
 
   const confirmDeleteAsset = async () => {
-    if (!currentAsset?.folder_name) return;
+    // Use optional chaining
+    const targetFolder = currentAsset?.folder_name;
+    if (!targetFolder) return;
+
     try {
       const response = await fetch(
-        `${apiBase}/portfolio/assets/${currentAsset.folder_name}`,
+        `${apiBase}/portfolio/assets/${targetFolder}`,
         { method: "DELETE" }
       );
       if (response.ok) {
         setPortfolioData((prev) => ({
           ...prev,
-          assets: (prev.assets || []).filter(
-            (a) => a.folder_name !== currentAsset.folder_name
+          // CRITICAL FIX: Add null checks inside the filter
+          assets: (prev?.assets || []).filter(
+            (a) => a && a.folder_name !== targetFolder
           ),
         }));
         navigate("/portfolio");
@@ -202,10 +209,10 @@ export default function AssetDetailsPage({
   // --- RENDER LOGIC ---
 
   // Loading state (Wait for portfolioData to exist)
-  if (
-    !portfolioData?.assets ||
-    (portfolioData.assets.length === 0 && isSyncingDocs)
-  ) {
+  // --- RENDER LOGIC ---
+
+  // 1. If we are still waiting for the main data array
+  if (!portfolioData?.assets) {
     return (
       <div className="h-full flex flex-col items-center justify-center p-20">
         <Loader2 className="animate-spin text-[#4F6EF7] mb-4" size={40} />
@@ -216,7 +223,8 @@ export default function AssetDetailsPage({
     );
   }
 
-  // Error state (Asset truly doesn't exist)
+  // 2. THE CRITICAL CHANGE: If the asset isn't found yet
+  // We check this BEFORE we try to render the rest of the page.
   if (!currentAsset) {
     return (
       <div className="p-20 text-center flex flex-col items-center gap-6">
@@ -224,7 +232,7 @@ export default function AssetDetailsPage({
           <AlertCircle size={32} />
         </div>
         <h2 className="text-xl font-bold dark:text-white uppercase tracking-tight">
-          Asset Not Found
+          Finding Asset...
         </h2>
         <button
           onClick={() => navigate("/portfolio")}
