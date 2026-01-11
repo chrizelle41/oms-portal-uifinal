@@ -146,11 +146,18 @@ export default function PortfolioPage({
 
   // --- DEFENSIVE FILTERING ---
   const filteredAssets = (portfolioData?.assets || []).filter((a) => {
-    // If a is null or doesn't have folder_name, we skip it
-    if (!a || !a.folder_name) return false;
+    // 1. If 'a' is null or undefined, skip it
+    if (!a) return false;
+
+    // 2. If folder_name is missing, skip it (This prevents your specific error)
+    if (!a.folder_name) return false;
+
+    // 3. Ignore system folders just in case they slipped through the API
+    if (a.folder_name.startsWith(".")) return false;
 
     const searchTerm = globalSearch?.toLowerCase() || "";
     const matchesSearch = (a.name?.toLowerCase() || "").includes(searchTerm);
+
     if (!matchesSearch) return false;
 
     if (activeFilter === "Favourites")
