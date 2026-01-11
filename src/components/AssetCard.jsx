@@ -8,16 +8,16 @@ export default function AssetCard({
   onUnarchive,
 }) {
   // --- 1. FATAL SAFETY GUARD ---
-  // If the asset object is null or undefined, return null so React skips it.
-  // This is the #1 way to prevent the "White Blank Page" error.
+  // If asset is missing or not an object, render nothing.
+  // This prevents the "cannot read property of undefined" crash.
   if (!asset || typeof asset !== "object") return null;
 
-  // --- 2. STABLE IDENTIFIERS ---
-  // Prioritize folder_name as that is your Azure directory key
-  const assetId = asset.id || asset.folder_name || "unknown-id";
-  const folderName = asset.folder_name || "root";
-  const assetName = asset.name || "Unnamed Asset";
-  const docCount = asset.docs || 0;
+  // --- 2. STABLE IDENTIFIERS WITH FALLBACKS ---
+  // Using ?. ensure that even if 'id' or 'folder_name' is missing, it doesn't crash.
+  const assetId = asset?.id || asset?.folder_name || "unknown-id";
+  const folderName = asset?.folder_name || "root";
+  const assetName = asset?.name || "Unnamed Asset";
+  const docCount = asset?.docs || 0;
 
   const imageUrl =
     asset?.img ||
@@ -48,7 +48,6 @@ export default function AssetCard({
           alt={assetName}
           className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
           onError={(e) => {
-            // If the image fails to load, use a fallback
             e.target.src =
               "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab";
           }}
@@ -56,7 +55,7 @@ export default function AssetCard({
 
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
-        {/* Cloud Badge (Indicates Azure Sync) */}
+        {/* Azure Sync Badge */}
         <div className="absolute top-4 left-4 z-20">
           <div className="bg-black/20 backdrop-blur-md border border-white/20 p-2 rounded-xl text-white/80">
             <Cloud size={14} />
@@ -65,11 +64,11 @@ export default function AssetCard({
 
         {/* Actions */}
         <div className="absolute top-4 right-4 flex flex-col gap-2 z-20">
-          {/* Favorite */}
+          {/* Favorite Button */}
           <button
             onClick={(e) => {
-              e.stopPropagation(); // Prevent navigating to details page
-              if (onFavorite) onFavorite(assetId);
+              e.stopPropagation();
+              if (onFavorite && assetId !== "unknown-id") onFavorite(assetId);
             }}
             className={`p-3 rounded-2xl shadow-xl backdrop-blur-xl border border-white/10 transition-all active:scale-90 ${
               asset?.isFavorite
@@ -83,7 +82,7 @@ export default function AssetCard({
             />
           </button>
 
-          {/* Archive / Restore */}
+          {/* Archive / Restore Button */}
           {asset?.status === "archived" ? (
             <button
               onClick={(e) => {
@@ -99,7 +98,7 @@ export default function AssetCard({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                if (onArchive) onArchive(asset); // Pass the whole object for the confirmation modal
+                if (onArchive) onArchive(asset);
               }}
               className="p-3 rounded-2xl shadow-xl bg-black/40 text-white/60 hover:bg-red-500 hover:text-white backdrop-blur-xl border border-white/10 transition-all active:scale-90"
               title="Archive"
@@ -116,14 +115,12 @@ export default function AssetCard({
           {assetName}
         </h3>
 
-        {/* Footer with Blob Doc Count */}
         <div className="mt-auto flex items-center justify-between">
           <div className="inline-flex items-center gap-1.5 text-slate-500 text-[10px] font-black uppercase tracking-widest bg-slate-100 dark:bg-white/5 px-3 py-1.5 rounded-full">
             <FileText size={12} className="text-[#4F6EF7]" />
             {docCount} Documents
           </div>
 
-          {/* Virtual Folder Identifier */}
           <span className="text-[9px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-tighter">
             ID: {folderName}
           </span>

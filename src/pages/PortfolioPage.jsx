@@ -236,25 +236,33 @@ export default function PortfolioPage({
       {/* Grid */}
       {filteredAssets.length > 0 ? (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6 mb-12">
-          {filteredAssets.map((asset) => (
-            <div
-              key={asset.id || asset.folder_name}
-              onClick={() => {
-                if (asset?.folder_name)
-                  navigate(`/portfolio/${asset.folder_name}`);
-              }}
-              className="contents"
-            >
-              <AssetCard
-                asset={asset}
-                isOpen={openMenuId === asset.id}
-                onFavorite={() => handleFavorite(asset.id)}
-                onMenuOpen={setOpenMenuId}
-                onArchive={() => setArchiveTarget(asset)}
-                onUnarchive={(id) => handleArchiveStatus(id, "active")}
-              />
-            </div>
-          ))}
+          {filteredAssets.map((asset) => {
+            // 1. Safety Guard: skip if asset is somehow null
+            if (!asset) return null;
+
+            return (
+              <div
+                key={asset?.id || asset?.folder_name || Math.random()}
+                onClick={() => {
+                  // 2. Safe Navigation
+                  if (asset?.folder_name) {
+                    navigate(`/portfolio/${asset.folder_name}`);
+                  }
+                }}
+                className="contents"
+              >
+                <AssetCard
+                  asset={asset}
+                  isOpen={openMenuId === asset?.id}
+                  // 3. Safe Handlers - Notice the ?. inside the arrow functions
+                  onFavorite={() => asset?.id && handleFavorite(asset.id)}
+                  onMenuOpen={setOpenMenuId}
+                  onArchive={() => asset && setArchiveTarget(asset)}
+                  onUnarchive={(id) => handleArchiveStatus(id, "active")}
+                />
+              </div>
+            );
+          })}
         </div>
       ) : (
         <div className="flex-1 flex flex-col items-center justify-center py-20">
