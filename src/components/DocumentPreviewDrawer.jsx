@@ -16,9 +16,11 @@ export default function DocumentPreviewDrawer({
       ? "http://localhost:8000"
       : "https://oms-portal4-1.onrender.com";
 
+  // Inside DocumentPreviewDrawer.jsx
   const previewUrl = document.isLocal
     ? document.localUrl
-    : `${API_BASE_URL}/preview/${document.id}`;
+    : `${API_BASE_URL}/preview/${encodeURIComponent(document.id)}`;
+  // encodeURIComponent prevents slashes in the filename/path from breaking the route
 
   return (
     <>
