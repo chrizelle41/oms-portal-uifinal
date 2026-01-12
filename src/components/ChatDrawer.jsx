@@ -53,8 +53,7 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
         ...prev,
         {
           role: "ai",
-          content:
-            "I'm having trouble connecting to the audit server. Please check your connection.",
+          content: "I'm having trouble connecting to the audit server.",
         },
       ]);
     } finally {
@@ -65,6 +64,7 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
   const renderMessageContent = (content) => {
     if (!content) return null;
 
+    // Detect Source Card
     const hasSourceCard = content.includes("SOURCE_FILE:");
     let mainContent = content;
     let sourceFileName = "";
@@ -85,7 +85,7 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
     });
 
     const renderedLines = lines.map((line, i) => {
-      // 1. Audit Cards Logic
+      // 1. Audit Cards Logic (Present/Missing)
       if (line.includes("|")) {
         const parts = line.split("|").map((s) => s.trim());
         if (parts.length >= 2) {
@@ -94,16 +94,16 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
           return (
             <div
               key={i}
-              className={`my-3 p-4 rounded-2xl border shadow-sm transition-all animate-in zoom-in-95 duration-200 ${
+              className={`my-3 p-4 rounded-2xl border shadow-sm w-full min-w-0 ${
                 isPresent
                   ? "bg-[#F0F4FF] border-blue-100 dark:bg-white/5 dark:border-white/10"
                   : "bg-red-50/50 border-red-100 dark:bg-red-900/10 dark:border-red-900/20"
               }`}
             >
-              <div className="flex flex-col gap-1">
-                <div className="flex justify-between items-start">
+              <div className="flex flex-col gap-1 min-w-0">
+                <div className="flex justify-between items-start gap-2">
                   <span
-                    className={`text-sm font-bold leading-tight ${
+                    className={`text-sm font-bold leading-tight break-words flex-1 ${
                       isPresent
                         ? "text-slate-800 dark:text-white"
                         : "text-red-800 dark:text-red-200"
@@ -112,7 +112,7 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
                     {title}
                   </span>
                   <span
-                    className={`text-[9px] px-1.5 py-0.5 rounded font-black uppercase tracking-tighter ${
+                    className={`text-[9px] px-1.5 py-0.5 rounded font-black uppercase flex-shrink-0 ${
                       isPresent
                         ? "bg-emerald-100 text-emerald-600"
                         : "bg-red-100 text-red-600"
@@ -121,7 +121,7 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
                     {status}
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 break-words">
                   {info}
                 </p>
                 {isPresent && (
@@ -141,14 +141,11 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
         }
       }
 
-      // 2. QA Text Logic (Fixing Scroll and Bullets)
+      // 2. QA Text / Bullets Logic
       let processedLine = line.trim();
       const isBullet =
         processedLine.startsWith("- ") || processedLine.startsWith("* ");
-
-      if (isBullet) {
-        processedLine = processedLine.substring(2);
-      }
+      if (isBullet) processedLine = processedLine.substring(2);
 
       const parts = processedLine.split(/(\*\*.*?\*\*)/g);
       const formattedLine = parts.map((part, index) => {
@@ -181,31 +178,31 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
     });
 
     return (
-      <div className="flex flex-col w-full max-w-full overflow-hidden break-words">
-        <div className="w-full max-w-full">{renderedLines}</div>
+      <div className="flex flex-col w-full min-w-0 overflow-hidden break-words">
+        <div className="w-full">{renderedLines}</div>
 
         {/* Source Card */}
         {hasSourceCard && sourceFileName && (
-          <div className="mt-4 p-4 rounded-2xl border border-blue-200 bg-blue-50/50 dark:bg-blue-500/5 dark:border-blue-500/20">
+          <div className="mt-4 p-3 rounded-2xl border border-blue-200 bg-blue-50/50 dark:bg-blue-500/5 dark:border-blue-500/20 w-full min-w-0">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="p-2 bg-[#4F6EF7] rounded-xl text-white flex-shrink-0">
-                  <FileText size={18} />
+                  <FileText size={16} />
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-[#4F6EF7]">
+                  <span className="text-[8px] font-black uppercase tracking-widest text-[#4F6EF7]">
                     Source Document
                   </span>
-                  <span className="text-xs font-bold text-slate-800 dark:text-white truncate">
+                  <span className="text-[11px] font-bold text-slate-800 dark:text-white truncate">
                     {sourceFileName}
                   </span>
                 </div>
               </div>
               <button
                 onClick={() => onOpenDoc?.(sourceFileName)}
-                className="flex-shrink-0 flex items-center gap-1 px-3 py-2 bg-white dark:bg-white/10 border border-blue-100 dark:border-white/10 rounded-xl text-[10px] font-black uppercase text-[#4F6EF7] hover:bg-[#4F6EF7] hover:text-white transition-all shadow-sm"
+                className="flex-shrink-0 flex items-center gap-1 px-2 py-1.5 bg-white dark:bg-white/10 border border-blue-100 dark:border-white/10 rounded-lg text-[10px] font-black uppercase text-[#4F6EF7] hover:bg-[#4F6EF7] hover:text-white transition-all shadow-sm"
               >
-                View <ChevronRight size={14} />
+                View <ChevronRight size={12} />
               </button>
             </div>
           </div>
@@ -213,15 +210,16 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
       </div>
     );
   };
+
   return (
     <div
-      className={`fixed top-0 right-0 h-full border-l border-slate-200 dark:border-white/10 bg-white dark:bg-[#0B0F1A] transition-transform duration-300 z-[999] ${
+      className={`fixed top-0 right-0 h-full border-l border-slate-200 dark:border-white/10 bg-white dark:bg-[#0B0F1A] transition-transform duration-300 z-[999] overflow-hidden ${
         isOpen ? "translate-x-0 w-[400px]" : "translate-x-full w-[400px]"
       }`}
     >
-      <div className="flex flex-col h-full shadow-2xl">
+      <div className="flex flex-col h-full shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="h-20 px-6 border-b border-slate-200 dark:border-white/10 flex justify-between items-center bg-white dark:bg-[#0B0F1A]">
+        <div className="h-20 px-6 border-b border-slate-200 dark:border-white/10 flex justify-between items-center bg-white dark:bg-[#0B0F1A] flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-gradient-to-br from-[#4F6EF7] to-purple-600 rounded-lg text-white">
               <Sparkles size={20} />
@@ -246,34 +244,34 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
         {/* Messages Container */}
         <div
           ref={scrollRef}
-          className="flex-1 px-6 py-4 overflow-y-auto space-y-6 no-scrollbar"
+          className="flex-1 px-4 py-4 overflow-y-auto space-y-6 no-scrollbar overflow-x-hidden"
         >
           {messages.map((msg, idx) => (
             <div
               key={idx}
-              className={`flex ${
+              className={`flex w-full ${
                 msg.role === "user" ? "justify-end" : "justify-start"
               }`}
             >
               <div
                 className={`${
                   msg.role === "user"
-                    ? "bg-[#4F6EF7] text-white p-3 px-4 rounded-2xl rounded-tr-none max-w-[85%] shadow-md"
-                    : "w-full max-w-full overflow-x-hidden pl-2"
+                    ? "bg-[#4F6EF7] text-white p-3 px-4 rounded-2xl rounded-tr-none max-w-[85%] shadow-md break-words"
+                    : "flex gap-3 w-full max-w-full min-w-0"
                 }`}
               >
-                {msg.role === "ai" ? (
-                  <div className="flex gap-4">
-                    <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex-shrink-0 flex items-center justify-center text-[#4F6EF7] dark:text-blue-400">
-                      <MessageSquare size={16} />
-                    </div>
-                    <div className="flex-1 pr-2">
-                      {renderMessageContent(msg.content)}
-                    </div>
+                {msg.role === "ai" && (
+                  <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex-shrink-0 flex items-center justify-center text-[#4F6EF7] dark:text-blue-400">
+                    <MessageSquare size={16} />
                   </div>
-                ) : (
-                  <span className="text-sm font-medium">{msg.content}</span>
                 )}
+                <div className="flex-1 min-w-0">
+                  {msg.role === "ai" ? (
+                    renderMessageContent(msg.content)
+                  ) : (
+                    <span className="text-sm font-medium">{msg.content}</span>
+                  )}
+                </div>
               </div>
             </div>
           ))}
@@ -286,7 +284,7 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
         </div>
 
         {/* Input Area */}
-        <div className="p-6 border-t border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-black/20">
+        <div className="p-4 border-t border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-black/20 flex-shrink-0">
           <div className="relative">
             <input
               type="text"
