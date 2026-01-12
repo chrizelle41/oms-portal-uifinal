@@ -64,7 +64,6 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
   const renderMessageContent = (content) => {
     if (!content) return null;
 
-    // Detect Source Card
     const hasSourceCard = content.includes("SOURCE_FILE:");
     let mainContent = content;
     let sourceFileName = "";
@@ -85,7 +84,6 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
     });
 
     const renderedLines = lines.map((line, i) => {
-      // 1. Audit Cards Logic (Present/Missing)
       if (line.includes("|")) {
         const parts = line.split("|").map((s) => s.trim());
         if (parts.length >= 2) {
@@ -101,7 +99,7 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
               }`}
             >
               <div className="flex flex-col gap-1 min-w-0">
-                <div className="flex justify-between items-start gap-2">
+                <div className="flex justify-between items-start gap-3">
                   <span
                     className={`text-sm font-bold leading-tight break-words flex-1 ${
                       isPresent
@@ -141,7 +139,6 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
         }
       }
 
-      // 2. QA Text / Bullets Logic
       let processedLine = line.trim();
       const isBullet =
         processedLine.startsWith("- ") || processedLine.startsWith("* ");
@@ -166,7 +163,7 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
         <div
           key={i}
           className={`text-sm leading-relaxed text-slate-600 dark:text-slate-300 break-words whitespace-normal ${
-            isBullet ? "pl-5 relative mb-2" : "mb-3"
+            isBullet ? "pl-6 relative mb-2" : "mb-3"
           }`}
         >
           {isBullet && (
@@ -178,19 +175,17 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
     });
 
     return (
-      <div className="flex flex-col w-full min-w-0 overflow-hidden break-words">
+      <div className="flex flex-col w-full min-w-0 overflow-hidden break-words px-1">
         <div className="w-full">{renderedLines}</div>
-
-        {/* Source Card */}
         {hasSourceCard && sourceFileName && (
           <div className="mt-4 p-3 rounded-2xl border border-blue-200 bg-blue-50/50 dark:bg-blue-500/5 dark:border-blue-500/20 w-full min-w-0">
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="p-2 bg-[#4F6EF7] rounded-xl text-white flex-shrink-0">
                   <FileText size={16} />
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <span className="text-[8px] font-black uppercase tracking-widest text-[#4F6EF7]">
+                  <span className="text-[8px] font-black uppercase text-[#4F6EF7]">
                     Source Document
                   </span>
                   <span className="text-[11px] font-bold text-slate-800 dark:text-white truncate">
@@ -200,9 +195,9 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
               </div>
               <button
                 onClick={() => onOpenDoc?.(sourceFileName)}
-                className="flex-shrink-0 flex items-center gap-1 px-2 py-1.5 bg-white dark:bg-white/10 border border-blue-100 dark:border-white/10 rounded-lg text-[10px] font-black uppercase text-[#4F6EF7] hover:bg-[#4F6EF7] hover:text-white transition-all shadow-sm"
+                className="flex-shrink-0 p-1.5 bg-white rounded-lg text-[#4F6EF7] shadow-sm"
               >
-                View <ChevronRight size={12} />
+                <ChevronRight size={16} />
               </button>
             </div>
           </div>
@@ -244,7 +239,7 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
         {/* Messages Container */}
         <div
           ref={scrollRef}
-          className="flex-1 px-4 py-4 overflow-y-auto space-y-6 no-scrollbar overflow-x-hidden"
+          className="flex-1 px-5 py-6 overflow-y-auto space-y-8 no-scrollbar overflow-x-hidden"
         >
           {messages.map((msg, idx) => (
             <div
@@ -256,27 +251,29 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
               <div
                 className={`${
                   msg.role === "user"
-                    ? "bg-[#4F6EF7] text-white p-3 px-4 rounded-2xl rounded-tr-none max-w-[85%] shadow-md break-words"
-                    : "flex gap-3 w-full max-w-full min-w-0"
+                    ? "bg-[#4F6EF7] text-white p-3.5 px-5 rounded-2xl rounded-tr-none max-w-[85%] shadow-md break-words"
+                    : "flex gap-5 w-full max-w-full min-w-0 pl-1"
                 }`}
               >
                 {msg.role === "ai" && (
-                  <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex-shrink-0 flex items-center justify-center text-[#4F6EF7] dark:text-blue-400">
-                    <MessageSquare size={16} />
+                  <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900/30 flex-shrink-0 flex items-center justify-center text-[#4F6EF7] dark:text-blue-400">
+                    <MessageSquare size={18} />
                   </div>
                 )}
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 pr-2">
                   {msg.role === "ai" ? (
                     renderMessageContent(msg.content)
                   ) : (
-                    <span className="text-sm font-medium">{msg.content}</span>
+                    <span className="text-sm font-medium leading-relaxed">
+                      {msg.content}
+                    </span>
                   )}
                 </div>
               </div>
             </div>
           ))}
           {loading && (
-            <div className="flex items-center gap-3 text-slate-400 text-[11px] px-12 font-bold uppercase tracking-widest">
+            <div className="flex items-center gap-4 text-slate-400 text-[11px] px-14 font-bold uppercase tracking-widest">
               <Loader2 className="animate-spin text-[#4F6EF7]" size={16} />
               Reviewing documents...
             </div>
@@ -284,7 +281,7 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
         </div>
 
         {/* Input Area */}
-        <div className="p-4 border-t border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-black/20 flex-shrink-0">
+        <div className="p-5 border-t border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-black/20 flex-shrink-0">
           <div className="relative">
             <input
               type="text"
@@ -292,12 +289,12 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSend()}
               placeholder="Ask about O&M gaps..."
-              className="w-full pl-4 pr-12 py-3.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl outline-none focus:ring-2 focus:ring-[#4F6EF7]/50 transition-all text-sm dark:text-white"
+              className="w-full pl-5 pr-14 py-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl outline-none focus:ring-2 focus:ring-[#4F6EF7]/50 transition-all text-sm dark:text-white"
             />
             <button
               onClick={handleSend}
               disabled={loading || !query.trim()}
-              className="absolute right-2 top-2 bottom-2 px-3 bg-[#4F6EF7] text-white rounded-xl hover:bg-blue-600 disabled:opacity-50 transition-colors"
+              className="absolute right-2.5 top-2.5 bottom-2.5 px-3.5 bg-[#4F6EF7] text-white rounded-xl hover:bg-blue-600 disabled:opacity-50 transition-colors shadow-lg shadow-blue-500/20"
             >
               <Send size={18} />
             </button>
