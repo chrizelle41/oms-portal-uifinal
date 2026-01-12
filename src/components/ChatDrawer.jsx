@@ -227,7 +227,7 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
             </div>
             <div className="flex flex-col">
               <span className="font-bold text-slate-900 dark:text-white leading-none">
-                Audit Assistant
+                O&M AI Assistant
               </span>
               <span className="text-[9px] text-blue-500 font-bold uppercase tracking-widest mt-1">
                 AI Powered Audit
