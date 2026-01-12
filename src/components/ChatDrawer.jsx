@@ -85,7 +85,7 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
     });
 
     const renderedLines = lines.map((line, i) => {
-      // 1. Audit Cards (Logic remains unchanged)
+      // 1. Audit Cards Logic
       if (line.includes("|")) {
         const parts = line.split("|").map((s) => s.trim());
         if (parts.length >= 2) {
@@ -130,7 +130,7 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
                       e.stopPropagation();
                       onOpenDoc?.(title);
                     }}
-                    className="w-fit flex items-center gap-1.5 mt-3 text-[10px] font-black uppercase tracking-wider text-[#4F6EF7] hover:text-blue-600"
+                    className="w-fit flex items-center gap-1.5 mt-3 text-[10px] font-black uppercase tracking-wider text-[#4F6EF7] hover:text-blue-600 transition-colors"
                   >
                     <FileText size={14} /> Open Document
                   </button>
@@ -141,18 +141,15 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
         }
       }
 
-      // 2. Optimized QA Text (No Horizontal Scroll & Clean Bullets)
+      // 2. QA Text Logic (Fixing Scroll and Bullets)
       let processedLine = line.trim();
-      // Detect if line starts with hyphen or asterisk bullet
       const isBullet =
         processedLine.startsWith("- ") || processedLine.startsWith("* ");
 
-      // Remove the hyphen/asterisk if it is a bullet to prevent "double bullets"
       if (isBullet) {
         processedLine = processedLine.substring(2);
       }
 
-      // Bold text processing
       const parts = processedLine.split(/(\*\*.*?\*\*)/g);
       const formattedLine = parts.map((part, index) => {
         if (part.startsWith("**") && part.endsWith("**")) {
@@ -171,14 +168,12 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
       return (
         <div
           key={i}
-          className={`text-sm leading-relaxed text-slate-600 dark:text-slate-300 break-words whitespace-pre-wrap ${
+          className={`text-sm leading-relaxed text-slate-600 dark:text-slate-300 break-words whitespace-normal ${
             isBullet ? "pl-5 relative mb-2" : "mb-3"
           }`}
         >
           {isBullet && (
-            <span className="absolute left-1 text-[#4F6EF7] font-bold">
-              px•
-            </span>
+            <span className="absolute left-1 text-[#4F6EF7] font-bold">•</span>
           )}
           {formattedLine}
         </div>
@@ -208,7 +203,7 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
               </div>
               <button
                 onClick={() => onOpenDoc?.(sourceFileName)}
-                className="flex-shrink-0 flex items-center gap-1 px-3 py-2 bg-white dark:bg-white/10 border border-blue-100 dark:border-white/10 rounded-xl text-[10px] font-black uppercase text-[#4F6EF7] hover:bg-[#4F6EF7] hover:text-white transition-all"
+                className="flex-shrink-0 flex items-center gap-1 px-3 py-2 bg-white dark:bg-white/10 border border-blue-100 dark:border-white/10 rounded-xl text-[10px] font-black uppercase text-[#4F6EF7] hover:bg-[#4F6EF7] hover:text-white transition-all shadow-sm"
               >
                 View <ChevronRight size={14} />
               </button>
@@ -218,7 +213,6 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
       </div>
     );
   };
-
   return (
     <div
       className={`fixed top-0 right-0 h-full border-l border-slate-200 dark:border-white/10 bg-white dark:bg-[#0B0F1A] transition-transform duration-300 z-[999] ${
