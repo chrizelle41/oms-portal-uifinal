@@ -65,7 +65,6 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
   const renderMessageContent = (content) => {
     if (!content) return null;
 
-    // Split content to handle the text and the source card separately
     const hasSourceCard = content.includes("SOURCE_FILE:");
     let mainContent = content;
     let sourceFileName = "";
@@ -73,7 +72,7 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
     if (hasSourceCard) {
       const parts = content.split("SOURCE_FILE:");
       mainContent = parts[0];
-      sourceFileName = parts[1].replace(/[\[\]]/g, "").trim(); // Clean brackets
+      sourceFileName = parts[1].replace(/[\[\]]/g, "").trim();
     }
 
     const lines = mainContent.split("\n").filter((line) => {
@@ -86,13 +85,12 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
     });
 
     const renderedLines = lines.map((line, i) => {
-      // 1. Handle Audit Cards (Title | Status | Info)
+      // 1. Audit Cards (Logic remains unchanged)
       if (line.includes("|")) {
         const parts = line.split("|").map((s) => s.trim());
         if (parts.length >= 2) {
           const [title, status, info] = parts;
           const isPresent = status.toLowerCase() === "present";
-
           return (
             <div
               key={i}
@@ -124,7 +122,7 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-                  {info || "No additional information provided."}
+                  {info}
                 </p>
                 {isPresent && (
                   <button
@@ -132,7 +130,7 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
                       e.stopPropagation();
                       onOpenDoc?.(title);
                     }}
-                    className="w-fit flex items-center gap-1.5 mt-3 text-[10px] font-black uppercase tracking-wider text-[#4F6EF7] hover:text-blue-600 transition-colors"
+                    className="w-fit flex items-center gap-1.5 mt-3 text-[10px] font-black uppercase tracking-wider text-[#4F6EF7] hover:text-blue-600"
                   >
                     <FileText size={14} /> Open Document
                   </button>
@@ -143,11 +141,18 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
         }
       }
 
-      // 2. Handle Markdown-style bolding and list items for QA answers
+      // 2. Optimized QA Text (No Horizontal Scroll & Clean Bullets)
       let processedLine = line.trim();
-      const isBullet = processedLine.startsWith("- ");
+      // Detect if line starts with hyphen or asterisk bullet
+      const isBullet =
+        processedLine.startsWith("- ") || processedLine.startsWith("* ");
 
-      // Basic Bold replacement (from **text** to <strong>text</strong>)
+      // Remove the hyphen/asterisk if it is a bullet to prevent "double bullets"
+      if (isBullet) {
+        processedLine = processedLine.substring(2);
+      }
+
+      // Bold text processing
       const parts = processedLine.split(/(\*\*.*?\*\*)/g);
       const formattedLine = parts.map((part, index) => {
         if (part.startsWith("**") && part.endsWith("**")) {
@@ -164,44 +169,46 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
       });
 
       return (
-        <p
+        <div
           key={i}
-          className={`text-sm leading-relaxed text-slate-600 dark:text-slate-300 ${
-            isBullet ? "pl-4 relative mb-1" : "mb-3"
+          className={`text-sm leading-relaxed text-slate-600 dark:text-slate-300 break-words whitespace-pre-wrap ${
+            isBullet ? "pl-5 relative mb-2" : "mb-3"
           }`}
         >
           {isBullet && (
-            <span className="absolute left-0 text-[#4F6EF7]">•</span>
+            <span className="absolute left-1 text-[#4F6EF7] font-bold">
+              px•
+            </span>
           )}
           {formattedLine}
-        </p>
+        </div>
       );
     });
 
     return (
-      <div className="flex flex-col">
-        {renderedLines}
+      <div className="flex flex-col w-full overflow-hidden">
+        <div className="w-full max-w-full">{renderedLines}</div>
 
-        {/* 3. Render the Specification Source Card */}
+        {/* Source Card */}
         {hasSourceCard && sourceFileName && (
-          <div className="mt-4 p-4 rounded-2xl border border-blue-200 bg-blue-50/50 dark:bg-blue-500/5 dark:border-blue-500/20 animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-[#4F6EF7] rounded-xl text-white shadow-md shadow-blue-500/20">
+          <div className="mt-4 p-4 rounded-2xl border border-blue-200 bg-blue-50/50 dark:bg-blue-500/5 dark:border-blue-500/20">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="p-2 bg-[#4F6EF7] rounded-xl text-white flex-shrink-0">
                   <FileText size={18} />
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-[#4F6EF7]">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-[#4F6EF7]">
                     Source Document
                   </span>
-                  <span className="text-sm font-bold text-slate-800 dark:text-white truncate max-w-[180px]">
+                  <span className="text-xs font-bold text-slate-800 dark:text-white truncate">
                     {sourceFileName}
                   </span>
                 </div>
               </div>
               <button
                 onClick={() => onOpenDoc?.(sourceFileName)}
-                className="flex items-center gap-1 px-3 py-2 bg-white dark:bg-white/10 border border-blue-100 dark:border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-[#4F6EF7] hover:bg-[#4F6EF7] hover:text-white transition-all shadow-sm"
+                className="flex-shrink-0 flex items-center gap-1 px-3 py-2 bg-white dark:bg-white/10 border border-blue-100 dark:border-white/10 rounded-xl text-[10px] font-black uppercase text-[#4F6EF7] hover:bg-[#4F6EF7] hover:text-white transition-all"
               >
                 View <ChevronRight size={14} />
               </button>
