@@ -11,16 +11,17 @@ export default function DocumentPreviewDrawer({
   if (!document) return null;
 
   // --- DYNAMIC BACKEND URL ---
+  // inside DocumentPreviewDrawer component
   const API_BASE_URL =
     window.location.hostname === "localhost"
       ? "http://localhost:8000"
       : "https://oms-portal4-1.onrender.com";
 
-  // Inside DocumentPreviewDrawer.jsx
+  // Use the raw document.id. If it contains a slash,
+  // the {document_id:path} on the backend will catch it.
   const previewUrl = document.isLocal
     ? document.localUrl
-    : `${API_BASE_URL}/preview/${encodeURIComponent(document.id)}`;
-  // encodeURIComponent prevents slashes in the filename/path from breaking the route
+    : `${API_BASE_URL}/preview/${document.id}`;
 
   return (
     <>
