@@ -181,7 +181,7 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
     });
 
     return (
-      <div className="flex flex-col w-full overflow-hidden">
+      <div className="flex flex-col w-full max-w-full overflow-hidden break-words">
         <div className="w-full max-w-full">{renderedLines}</div>
 
         {/* Source Card */}
@@ -259,7 +259,7 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
                 className={`${
                   msg.role === "user"
                     ? "bg-[#4F6EF7] text-white p-3 px-4 rounded-2xl rounded-tr-none max-w-[85%] shadow-md"
-                    : "w-full pl-2"
+                    : "w-full max-w-full overflow-x-hidden pl-2"
                 }`}
               >
                 {msg.role === "ai" ? (
