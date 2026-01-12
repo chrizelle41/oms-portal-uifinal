@@ -6,6 +6,7 @@ import {
   Loader2,
   FileText,
   Sparkles,
+  ChevronRight,
 } from "lucide-react";
 
 export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
@@ -64,7 +65,18 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
   const renderMessageContent = (content) => {
     if (!content) return null;
 
-    const lines = content.split("\n").filter((line) => {
+    // Split content to handle the text and the source card separately
+    const hasSourceCard = content.includes("SOURCE_FILE:");
+    let mainContent = content;
+    let sourceFileName = "";
+
+    if (hasSourceCard) {
+      const parts = content.split("SOURCE_FILE:");
+      mainContent = parts[0];
+      sourceFileName = parts[1].replace(/[\[\]]/g, "").trim(); // Clean brackets
+    }
+
+    const lines = mainContent.split("\n").filter((line) => {
       const l = line.toLowerCase();
       return (
         !l.includes("document name | status") &&
@@ -73,7 +85,8 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
       );
     });
 
-    return lines.map((line, i) => {
+    const renderedLines = lines.map((line, i) => {
+      // 1. Handle Audit Cards (Title | Status | Info)
       if (line.includes("|")) {
         const parts = line.split("|").map((s) => s.trim());
         if (parts.length >= 2) {
@@ -110,18 +123,14 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
                     {status}
                   </span>
                 </div>
-
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
                   {info || "No additional information provided."}
                 </p>
-
                 {isPresent && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (typeof onOpenDoc === "function") {
-                        onOpenDoc(title);
-                      }
+                      onOpenDoc?.(title);
                     }}
                     className="w-fit flex items-center gap-1.5 mt-3 text-[10px] font-black uppercase tracking-wider text-[#4F6EF7] hover:text-blue-600 transition-colors"
                   >
@@ -134,15 +143,73 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
         }
       }
 
+      // 2. Handle Markdown-style bolding and list items for QA answers
+      let processedLine = line.trim();
+      const isBullet = processedLine.startsWith("- ");
+
+      // Basic Bold replacement (from **text** to <strong>text</strong>)
+      const parts = processedLine.split(/(\*\*.*?\*\*)/g);
+      const formattedLine = parts.map((part, index) => {
+        if (part.startsWith("**") && part.endsWith("**")) {
+          return (
+            <strong
+              key={index}
+              className="font-bold text-slate-900 dark:text-white"
+            >
+              {part.slice(2, -2)}
+            </strong>
+          );
+        }
+        return part;
+      });
+
       return (
         <p
           key={i}
-          className="mb-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300"
+          className={`text-sm leading-relaxed text-slate-600 dark:text-slate-300 ${
+            isBullet ? "pl-4 relative mb-1" : "mb-3"
+          }`}
         >
-          {line}
+          {isBullet && (
+            <span className="absolute left-0 text-[#4F6EF7]">•</span>
+          )}
+          {formattedLine}
         </p>
       );
     });
+
+    return (
+      <div className="flex flex-col">
+        {renderedLines}
+
+        {/* 3. Render the Specification Source Card */}
+        {hasSourceCard && sourceFileName && (
+          <div className="mt-4 p-4 rounded-2xl border border-blue-200 bg-blue-50/50 dark:bg-blue-500/5 dark:border-blue-500/20 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-[#4F6EF7] rounded-xl text-white shadow-md shadow-blue-500/20">
+                  <FileText size={18} />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-[#4F6EF7]">
+                    Source Document
+                  </span>
+                  <span className="text-sm font-bold text-slate-800 dark:text-white truncate max-w-[180px]">
+                    {sourceFileName}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => onOpenDoc?.(sourceFileName)}
+                className="flex items-center gap-1 px-3 py-2 bg-white dark:bg-white/10 border border-blue-100 dark:border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-[#4F6EF7] hover:bg-[#4F6EF7] hover:text-white transition-all shadow-sm"
+              >
+                View <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
