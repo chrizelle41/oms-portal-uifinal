@@ -5,6 +5,8 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
+// Icons - Ensure 'lucide-react' is in your package.json
+import { Eye, EyeOff, Building2, ShieldAlert } from "lucide-react";
 
 // Components
 import Sidebar from "./components/Sidebar";
@@ -29,7 +31,7 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(true);
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false); // New: Toggle for visibility
+  const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState("");
 
   // --- APP STATE ---
@@ -63,7 +65,7 @@ export default function App() {
     }
   }, [isDarkMode]);
 
-  // 3. Data Fetching (Only runs if authenticated)
+  // 3. Data Fetching (Only if authenticated)
   useEffect(() => {
     if (!isAuthenticated) return;
 
@@ -98,6 +100,13 @@ export default function App() {
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoginError("");
+
+    // Validation: Domain Check
+    if (!loginEmail.toLowerCase().endsWith("@virtualviewing.com")) {
+      setLoginError("Access Denied: Use your @virtualviewing.com email.");
+      return;
+    }
+
     try {
       const response = await fetch(`${API_BASE_URL}/login`, {
         method: "POST",
@@ -110,8 +119,7 @@ export default function App() {
         setIsAuthenticated(true);
         localStorage.setItem("vv_session", "active");
       } else {
-        // detail comes from FastAPI HTTPException
-        setLoginError(data.detail || "Access Denied");
+        setLoginError(data.detail || "Invalid Credentials");
       }
     } catch (err) {
       setLoginError("Server unreachable. Check backend connection.");
@@ -121,7 +129,6 @@ export default function App() {
   const handleLogout = () => {
     localStorage.removeItem("vv_session");
     setIsAuthenticated(false);
-    // Clear sensitive data from state on logout
     setFiles([]);
     setPortfolioData({
       stats: { companies: 0, properties: 0, docs: 0 },
@@ -187,9 +194,7 @@ export default function App() {
         >
           <div className="text-center mb-10">
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-blue-600/10 mb-6 group">
-              <span className="text-3xl group-hover:scale-110 transition-transform cursor-default">
-                🏢
-              </span>
+              <Building2 size={32} className="text-blue-500" />
             </div>
             <h1
               className={`text-2xl font-black tracking-tight uppercase ${
@@ -243,13 +248,14 @@ export default function App() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-4 top-1/2 -translate-y-1/2 mt-0.5 text-slate-400 hover:text-blue-500 transition-colors"
                 >
-                  {showPassword ? "🙈" : "👁️"}
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
             </div>
 
             {loginError && (
-              <div className="bg-red-500/10 text-red-500 text-xs font-bold p-4 rounded-2xl text-center border border-red-500/20">
+              <div className="flex items-center justify-center gap-2 bg-red-500/10 text-red-500 text-[11px] font-bold p-4 rounded-2xl text-center border border-red-500/20">
+                <ShieldAlert size={14} />
                 {loginError}
               </div>
             )}
@@ -378,14 +384,6 @@ export default function App() {
             isDarkMode={isDarkMode}
           />
         )}
-
-        {/* Floating Logout for Demo purposes */}
-        <button
-          onClick={handleLogout}
-          className="fixed bottom-4 left-4 z-50 p-2 text-[10px] font-black uppercase text-slate-500 hover:text-red-500 transition-colors"
-        >
-          Logout Session
-        </button>
       </div>
     </Router>
   );
