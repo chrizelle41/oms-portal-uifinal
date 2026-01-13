@@ -1,5 +1,13 @@
-import React, { useState } from "react";
-import { X, Database, User, Calendar, Info, FileText } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import {
+  X,
+  Database,
+  User,
+  Calendar,
+  Info,
+  FileText,
+  Loader2,
+} from "lucide-react";
 
 export default function DocumentPreviewDrawer({
   document,
@@ -7,44 +15,40 @@ export default function DocumentPreviewDrawer({
   isDarkMode,
 }) {
   const [activeTab, setActiveTab] = useState("details");
+  const [isIframeLoading, setIsIframeLoading] = useState(true);
+
+  // Reset loading state whenever the document changes
+  useEffect(() => {
+    setIsIframeLoading(true);
+  }, [document?.document_id, document?.id]);
 
   if (!document) return null;
 
-  // --- DYNAMIC BACKEND URL ---
   const API_BASE_URL =
     window.location.hostname === "localhost"
       ? "http://localhost:8000"
       : "https://oms-portal4-1.onrender.com";
 
-  // --- DATA NORMALIZATION ---
-  // Captures the ID whether the backend sends 'id' or 'document_id'
   const docId = document.document_id || document.id;
-
-  // Ensures we have a display name
   const displayName = document.filename || document.name || "Unknown Document";
 
-  // Safeguard the URL with encoding for folders/special characters
   const previewUrl = document.isLocal
     ? document.localUrl
-    : `${API_BASE_URL}/preview/${encodeURIComponent(docId)}`;
+    : `${API_BASE_URL}/direct_preview/${encodeURIComponent(docId)}`;
 
   return (
     <>
-      {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] animate-in fade-in duration-300"
         onClick={onClose}
       />
 
-      {/* Drawer */}
       <div
         className={`fixed top-0 right-0 h-full w-[90%] max-w-7xl shadow-2xl z-[201] flex animate-in slide-in-from-right duration-500 ease-out overflow-hidden ${
           isDarkMode ? "bg-[#0B0F1A] text-white" : "bg-white text-slate-900"
         }`}
       >
-        {/* Main Preview Section */}
         <div className="flex-1 flex flex-col border-r border-slate-200 dark:border-white/10">
-          {/* Header */}
           <div className="p-6 border-b border-inherit flex justify-between items-center bg-inherit relative z-10">
             <div className="flex items-center gap-4 min-w-0">
               <button
@@ -53,30 +57,36 @@ export default function DocumentPreviewDrawer({
               >
                 <X size={24} />
               </button>
-
               <h2 className="text-xl font-bold truncate max-w-md">
                 {displayName}
               </h2>
             </div>
-
-            <div className="flex items-center gap-3">
-              <span className="px-4 py-1.5 rounded-full bg-[#4F6EF7] text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-500/20">
-                {document.system || document.cat || "General"}
-              </span>
-            </div>
+            <span className="px-4 py-1.5 rounded-full bg-[#4F6EF7] text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-500/20">
+              {document.system || document.cat || "General"}
+            </span>
           </div>
 
-          {/* Iframe Viewport */}
           <div
-            className={`flex-1 overflow-hidden p-4 md:p-8 flex justify-center ${
+            className={`flex-1 overflow-hidden p-4 md:p-8 flex justify-center relative ${
               isDarkMode ? "bg-black/40" : "bg-slate-100"
             }`}
           >
-            <div className="w-full h-full max-w-5xl shadow-2xl bg-white rounded-2xl overflow-hidden border border-slate-200 dark:border-white/5">
+            <div className="w-full h-full max-w-5xl shadow-2xl bg-white rounded-2xl overflow-hidden border border-slate-200 dark:border-white/5 relative">
+              {/* LOADING SPINNER */}
+              {isIframeLoading && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 z-10 text-center p-4">
+                  <Loader2 className="w-10 h-10 animate-spin text-[#4F6EF7] mb-4" />
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                    Retrieving from Secure Server...
+                  </p>
+                </div>
+              )}
+
               {docId ? (
                 <iframe
-                  key={docId} // Forces iframe refresh on file switch
+                  key={docId}
                   src={previewUrl}
+                  onLoad={() => setIsIframeLoading(false)}
                   title="Document Preview"
                   className="w-full h-full border-none"
                 />
@@ -89,13 +99,11 @@ export default function DocumentPreviewDrawer({
           </div>
         </div>
 
-        {/* Right Sidebar */}
         <div
           className={`w-80 shrink-0 flex flex-col ${
             isDarkMode ? "bg-[#0B0F1A]" : "bg-slate-50/50"
           }`}
         >
-          {/* Tabs */}
           <div className="flex p-3 gap-2 border-b border-slate-200 dark:border-white/10">
             <button
               onClick={() => setActiveTab("details")}
@@ -119,7 +127,6 @@ export default function DocumentPreviewDrawer({
             </button>
           </div>
 
-          {/* Sidebar Content */}
           <div className="p-8 space-y-8 overflow-y-auto no-scrollbar">
             {activeTab === "details" ? (
               <>
@@ -145,7 +152,6 @@ export default function DocumentPreviewDrawer({
                     />
                   </div>
                 </div>
-
                 <div
                   className={`p-5 rounded-2xl border ${
                     isDarkMode
@@ -161,37 +167,32 @@ export default function DocumentPreviewDrawer({
                     {document.document_type || document.doc_type || "document"}{" "}
                     is part of the{" "}
                     {document.system || document.cat || "General"} database.
-                    {document.asset_hint
-                      ? ` Cross-reference: ${document.asset_hint}.`
-                      : ""}
                   </p>
                 </div>
               </>
             ) : (
-              <>
+              <div className="space-y-4">
                 <p className="text-[10px] font-black uppercase tracking-widest text-[#4F6EF7] mb-4">
                   Technical Metadata
                 </p>
-                <div className="space-y-4">
-                  <DetailRow
-                    icon={<FileText size={14} />}
-                    label="Doc Type"
-                    value={document.document_type || document.doc_type}
-                    highlight
-                  />
-                  <DetailRow
-                    icon={<Info size={14} />}
-                    label="System"
-                    value={document.system || document.cat}
-                  />
-                  <DetailRow
-                    icon={<Info size={14} />}
-                    label="Internal ID"
-                    value={docId}
-                    italic
-                  />
-                </div>
-              </>
+                <DetailRow
+                  icon={<FileText size={14} />}
+                  label="Doc Type"
+                  value={document.document_type || document.doc_type}
+                  highlight
+                />
+                <DetailRow
+                  icon={<Info size={14} />}
+                  label="System"
+                  value={document.system || document.cat}
+                />
+                <DetailRow
+                  icon={<Info size={14} />}
+                  label="Internal ID"
+                  value={docId}
+                  italic
+                />
+              </div>
             )}
           </div>
         </div>
@@ -200,7 +201,6 @@ export default function DocumentPreviewDrawer({
   );
 }
 
-/* Helper Component */
 function DetailRow({ icon, label, value, highlight, italic }) {
   return (
     <div className="flex justify-between items-center text-[11px]">
