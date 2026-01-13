@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Building2 } from "lucide-react";
 
 export default function LoginPage({ onLogin, error, isDarkMode }) {
   const [email, setEmail] = useState("");
@@ -11,11 +11,9 @@ export default function LoginPage({ onLogin, error, isDarkMode }) {
     e.preventDefault();
     setLocalError("");
 
-    // Professional Validation
+    // Domain Validation
     if (!email.toLowerCase().endsWith("@virtualviewing.com")) {
-      setLocalError(
-        "Access Denied: Only @virtualviewing.com accounts are authorized."
-      );
+      setLocalError("Access Denied: Use your @virtualviewing.com email.");
       return;
     }
 
@@ -37,11 +35,10 @@ export default function LoginPage({ onLogin, error, isDarkMode }) {
             : "bg-white border border-slate-100"
         }`}
       >
+        {/* Logo Section */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-blue-600/10 mb-6 group">
-            <span className="text-3xl group-hover:scale-110 transition-transform cursor-default">
-              🏢
-            </span>
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-blue-600/10 mb-6">
+            <Building2 className="text-blue-600" size={32} />
           </div>
           <h1
             className={`text-2xl font-black tracking-tight uppercase ${
@@ -96,17 +93,13 @@ export default function LoginPage({ onLogin, error, isDarkMode }) {
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-500 transition-colors"
               >
-                {showPassword ? (
-                  <EyeOff size={20} strokeWidth={2} />
-                ) : (
-                  <Eye size={20} strokeWidth={2} />
-                )}
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
             </div>
           </div>
 
           {displayError && (
-            <div className="bg-red-500/10 text-red-500 text-[11px] font-bold p-4 rounded-2xl text-center border border-red-500/20 animate-in fade-in zoom-in duration-200">
+            <div className="bg-red-500/10 text-red-500 text-[11px] font-bold p-4 rounded-2xl text-center border border-red-500/20">
               {displayError}
             </div>
           )}
