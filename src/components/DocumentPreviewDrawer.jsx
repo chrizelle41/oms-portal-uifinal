@@ -1,5 +1,13 @@
 import React, { useState } from "react";
-import { X, Database, User, Calendar, Info, FileText } from "lucide-react";
+import {
+  X,
+  Database,
+  User,
+  Calendar,
+  Info,
+  FileText,
+  Download,
+} from "lucide-react";
 
 export default function DocumentPreviewDrawer({
   document,
@@ -11,17 +19,22 @@ export default function DocumentPreviewDrawer({
   if (!document) return null;
 
   // --- DYNAMIC BACKEND URL ---
-  // inside DocumentPreviewDrawer component
   const API_BASE_URL =
     window.location.hostname === "localhost"
       ? "http://localhost:8000"
       : "https://oms-portal4-1.onrender.com";
 
-  // Use the raw document.id. If it contains a slash,
-  // the {document_id:path} on the backend will catch it.
+  // --- DATA NORMALIZATION ---
+  // Ensure we capture the ID regardless of whether the backend sends 'id' or 'document_id'
+  const docId = document.document_id || document.id;
+
+  // Ensure we have a display name
+  const displayName = document.filename || document.name || "Unknown Document";
+
+  // Safeguard the URL with encoding for folders/special characters
   const previewUrl = document.isLocal
     ? document.localUrl
-    : `${API_BASE_URL}/preview/${document.id}`;
+    : `${API_BASE_URL}/preview/${encodeURIComponent(docId)}`;
 
   return (
     <>
@@ -50,13 +63,25 @@ export default function DocumentPreviewDrawer({
               </button>
 
               <h2 className="text-xl font-bold truncate max-w-md">
-                {document.name}
+                {displayName}
               </h2>
             </div>
 
-            <span className="px-4 py-1.5 rounded-full bg-[#4F6EF7] text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-500/20">
-              {document.cat}
-            </span>
+            <div className="flex items-center gap-3">
+              <a
+                href={previewUrl}
+                download
+                target="_blank"
+                rel="noreferrer"
+                className="p-2.5 rounded-xl bg-slate-500/10 text-slate-400 hover:text-[#4F6EF7] transition-colors"
+                title="Download File"
+              >
+                <Download size={20} />
+              </a>
+              <span className="px-4 py-1.5 rounded-full bg-[#4F6EF7] text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-500/20">
+                {document.system || document.cat || "General"}
+              </span>
+            </div>
           </div>
 
           {/* Iframe Viewport */}
@@ -66,12 +91,18 @@ export default function DocumentPreviewDrawer({
             }`}
           >
             <div className="w-full h-full max-w-5xl shadow-2xl bg-white rounded-2xl overflow-hidden border border-slate-200 dark:border-white/5">
-              <iframe
-                key={document.id}
-                src={previewUrl}
-                title="Document Preview"
-                className="w-full h-full border-none"
-              />
+              {docId ? (
+                <iframe
+                  key={docId} // Using docId as key forces refresh when switching files
+                  src={previewUrl}
+                  title="Document Preview"
+                  className="w-full h-full border-none"
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full text-slate-400 font-bold uppercase tracking-widest text-xs">
+                  Unable to load document path
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -118,17 +149,17 @@ export default function DocumentPreviewDrawer({
                     <DetailRow
                       icon={<Database size={14} />}
                       label="File Size"
-                      value={document.size}
+                      value={document.size || "Analyzing..."}
                     />
                     <DetailRow
                       icon={<User size={14} />}
                       label="Source"
-                      value={document.user || "System"}
+                      value={document.user || "O&M Cloud"}
                     />
                     <DetailRow
                       icon={<Calendar size={14} />}
                       label="Last Modified"
-                      value={document.date}
+                      value={document.date || "Verified"}
                     />
                   </div>
                 </div>
@@ -144,8 +175,10 @@ export default function DocumentPreviewDrawer({
                     <Info size={14} /> Description
                   </div>
                   <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400 font-medium italic">
-                    This {document.doc_type || "document"} is part of the{" "}
-                    {document.cat} database.
+                    This{" "}
+                    {document.document_type || document.doc_type || "document"}{" "}
+                    is part of the{" "}
+                    {document.system || document.cat || "General"} database.
                     {document.asset_hint
                       ? ` Cross-reference: ${document.asset_hint}.`
                       : ""}
@@ -155,24 +188,24 @@ export default function DocumentPreviewDrawer({
             ) : (
               <>
                 <p className="text-[10px] font-black uppercase tracking-widest text-[#4F6EF7] mb-4">
-                  Properties
+                  Technical Metadata
                 </p>
                 <div className="space-y-4">
                   <DetailRow
                     icon={<FileText size={14} />}
-                    label="Type"
-                    value={document.doc_type}
+                    label="Doc Type"
+                    value={document.document_type || document.doc_type}
                     highlight
                   />
                   <DetailRow
                     icon={<Info size={14} />}
-                    label="Category"
-                    value={document.cat}
+                    label="System"
+                    value={document.system || document.cat}
                   />
                   <DetailRow
                     icon={<Info size={14} />}
-                    label="Reference"
-                    value={document.asset_hint || "None"}
+                    label="Internal ID"
+                    value={docId}
                     italic
                   />
                 </div>
@@ -194,9 +227,9 @@ function DetailRow({ icon, label, value, highlight, italic }) {
         <span>{label}</span>
       </div>
       <span
-        className={`font-black ${
+        className={`font-black truncate max-w-[120px] text-right ${
           highlight ? "text-[#4F6EF7]" : "text-slate-600 dark:text-slate-300"
-        } ${italic ? "italic" : ""}`}
+        } ${italic ? "italic text-[9px]" : ""}`}
       >
         {value || "—"}
       </span>

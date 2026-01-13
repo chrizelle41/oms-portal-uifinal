@@ -13,7 +13,7 @@ import ChatDrawer from "./components/ChatDrawer";
 import DocumentPreviewDrawer from "./components/DocumentPreviewDrawer";
 
 // Pages
-import LoginPage from "./pages/LoginPage"; // <--- Importing your external file
+import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import AllFilesPage from "./pages/AllFilesPage";
 import PortfolioPage from "./pages/PortfolioPage";
@@ -82,7 +82,6 @@ export default function App() {
     fetchData();
   }, [isAuthenticated]);
 
-  // Logic passed TO the LoginPage
   const handleLogin = async (email, password) => {
     setLoginError("");
     try {
@@ -97,7 +96,7 @@ export default function App() {
         setIsAuthenticated(true);
         localStorage.setItem("vv_session", "active");
       } else {
-        setLoginError("Access Denied: Use the correct email and password.");
+        setLoginError("Access Denied: Invalid credentials.");
       }
     } catch (err) {
       setLoginError("Server waking up. Please try again in a few seconds.");
@@ -109,11 +108,14 @@ export default function App() {
     setIsAuthenticated(false);
   };
 
+  // --- UPDATED PREVIEW LOGIC ---
   const handleOpenPreview = (file) => {
-    const docId = file.id || file.document_id;
+    // We pass the WHOLE file object so the drawer gets metadata (size, date, etc.)
+    // We also add the previewUrl explicitly for the iframe.
+    const docId = file.document_id || file.id;
     setSelectedDoc({
-      id: docId,
-      name: file.name || file.filename,
+      ...file,
+      id: docId, // Ensure a consistent ID key
       previewUrl: `${API_BASE_URL}/preview/${encodeURIComponent(docId)}`,
     });
   };
@@ -130,7 +132,6 @@ export default function App() {
 
   if (authLoading) return null;
 
-  // --- SHOW EXTERNAL LOGIN PAGE ---
   if (!isAuthenticated) {
     return (
       <LoginPage
@@ -154,6 +155,7 @@ export default function App() {
           isCollapsed={isCollapsed}
           setIsCollapsed={setIsCollapsed}
           isDarkMode={isDarkMode}
+          setIsDarkMode={setIsDarkMode} // Added this
           onLogout={handleLogout}
         />
         <div className="flex-1 flex overflow-hidden relative">
@@ -232,6 +234,7 @@ export default function App() {
               isOpen={isAiOpen}
               setIsOpen={setIsAiOpen}
               apiBase={API_BASE_URL}
+              onOpenDoc={handleOpenPreview} // Added this to handle AI file links
             />
           </div>
         </div>
