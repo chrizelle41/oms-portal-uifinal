@@ -13,9 +13,7 @@ export default function LoginPage({ onLogin, error, isDarkMode }) {
 
     // Professional Validation
     if (!email.toLowerCase().endsWith("@virtualviewing.com")) {
-      setLocalError(
-        "Access Denied: Use the correct @virtualviewing.com email."
-      );
+      setLocalError("Access Denied");
       return;
     }
 
@@ -46,10 +44,10 @@ export default function LoginPage({ onLogin, error, isDarkMode }) {
               isDarkMode ? "text-white" : "text-slate-900"
             }`}
           >
-            Virtual Viewing
+            O&Ms Portal
           </h1>
           <p className="text-slate-500 text-sm mt-2 font-medium">
-            O&M Operations Portal
+            Authorized Personnel Only
           </p>
         </div>
 
@@ -100,8 +98,8 @@ export default function LoginPage({ onLogin, error, isDarkMode }) {
           </div>
 
           {displayError && (
-            <div className="flex items-center gap-2 bg-red-500/10 text-red-500 text-[11px] font-bold p-4 rounded-2xl border border-red-500/20">
-              <ShieldAlert size={16} />
+            <div className="flex items-center gap-2 bg-red-500/10 text-red-500 text-[11px] font-bold p-4 rounded-2xl border border-red-500/20 animate-in fade-in slide-in-from-top-1">
+              <ShieldAlert size={16} className="shrink-0" />
               <span>{displayError}</span>
             </div>
           )}
@@ -113,6 +111,12 @@ export default function LoginPage({ onLogin, error, isDarkMode }) {
             Sign In
           </button>
         </form>
+
+        <div className="mt-10 pt-8 border-t border-slate-100/5 text-center">
+          <p className="text-slate-500 text-[10px] uppercase tracking-[0.2em] font-bold">
+            System Access Protected
+          </p>
+        </div>
       </div>
     </div>
   );
