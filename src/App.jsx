@@ -109,13 +109,37 @@ export default function App() {
   };
 
   // --- UPDATED PREVIEW LOGIC ---
-  const handleOpenPreview = (file) => {
-    // We pass the WHOLE file object so the drawer gets metadata (size, date, etc.)
-    // We also add the previewUrl explicitly for the iframe.
-    const docId = file.document_id || file.id;
+  // --- UPDATED PREVIEW LOGIC ---
+  const handleOpenPreview = (fileOrId) => {
+    let fileData;
+
+    // Check if the chat sent just a string (ID) instead of a full object
+    if (typeof fileOrId === "string") {
+      // Find the existing file object in your state so the drawer has the metadata (size, date, etc.)
+      fileData = files.find(
+        (f) =>
+          f.document_id === fileOrId ||
+          f.filename === fileOrId ||
+          f.id === fileOrId
+      );
+
+      // If we can't find the full object, create a minimal one so it still opens
+      if (!fileData) {
+        fileData = {
+          document_id: fileOrId,
+          filename: fileOrId.split("/").pop(),
+        };
+      }
+    } else {
+      fileData = fileOrId;
+    }
+
+    const docId = fileData.document_id || fileData.id;
+
     setSelectedDoc({
-      ...file,
-      id: docId, // Ensure a consistent ID key
+      ...fileData,
+      id: docId,
+      // This URL construction is what the iframe in DocumentPreviewDrawer uses
       previewUrl: `${API_BASE_URL}/preview/${encodeURIComponent(docId)}`,
     });
   };

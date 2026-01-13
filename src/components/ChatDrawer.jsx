@@ -64,14 +64,20 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
   const renderMessageContent = (content) => {
     if (!content) return null;
 
-    const hasSourceCard = content.includes("SOURCE_FILE:");
+    // --- IMPROVED PARSING LOGIC ---
+    // We check for both SOURCE_FILE (Display Name) and SOURCE_ID (Actual Path)
+    const hasSourceCard =
+      content.includes("SOURCE_FILE:") || content.includes("SOURCE_ID:");
     let mainContent = content;
-    let sourceFileName = "";
+    let sourceIdentifier = "";
 
     if (hasSourceCard) {
-      const parts = content.split("SOURCE_FILE:");
+      const delimiter = content.includes("SOURCE_ID:")
+        ? "SOURCE_ID:"
+        : "SOURCE_FILE:";
+      const parts = content.split(delimiter);
       mainContent = parts[0];
-      sourceFileName = parts[1].replace(/[\[\]]/g, "").trim();
+      sourceIdentifier = parts[1].replace(/[\[\]]/g, "").trim();
     }
 
     const lines = mainContent.split("\n").filter((line) => {
@@ -126,7 +132,7 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      onOpenDoc?.(title);
+                      onOpenDoc?.(info); // This triggers the search fallback in the parent
                     }}
                     className="w-fit flex items-center gap-1.5 mt-3 text-[10px] font-black uppercase tracking-wider text-[#4F6EF7] hover:text-blue-600 transition-colors"
                   >
@@ -177,7 +183,7 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
     return (
       <div className="flex flex-col w-full min-w-0 overflow-hidden break-words px-1">
         <div className="w-full">{renderedLines}</div>
-        {hasSourceCard && sourceFileName && (
+        {hasSourceCard && sourceIdentifier && (
           <div className="mt-4 p-3 rounded-2xl border border-blue-200 bg-blue-50/50 dark:bg-blue-500/5 dark:border-blue-500/20 w-full min-w-0">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
@@ -186,16 +192,16 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
                 </div>
                 <div className="flex flex-col min-w-0">
                   <span className="text-[8px] font-black uppercase text-[#4F6EF7]">
-                    Source Document
+                    Reference Found
                   </span>
-                  <span className="text-[11px] font-bold text-slate-800 dark:text-white truncate">
-                    {sourceFileName}
+                  <span className="text-[11px] font-bold text-slate-800 dark:text-white truncate max-w-[180px]">
+                    {sourceIdentifier.split("/").pop()}
                   </span>
                 </div>
               </div>
               <button
-                onClick={() => onOpenDoc?.(sourceFileName)}
-                className="flex-shrink-0 p-1.5 bg-white rounded-lg text-[#4F6EF7] shadow-sm"
+                onClick={() => onOpenDoc?.(sourceIdentifier)}
+                className="flex-shrink-0 p-1.5 bg-[#4F6EF7] rounded-lg text-white shadow-sm hover:bg-blue-600 transition-colors"
               >
                 <ChevronRight size={16} />
               </button>
@@ -213,7 +219,6 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
       }`}
     >
       <div className="flex flex-col h-full shadow-2xl overflow-hidden">
-        {/* Header */}
         <div className="h-20 px-6 border-b border-slate-200 dark:border-white/10 flex justify-between items-center bg-white dark:bg-[#0B0F1A] flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-gradient-to-br from-[#4F6EF7] to-purple-600 rounded-lg text-white">
@@ -221,10 +226,10 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
             </div>
             <div className="flex flex-col">
               <span className="font-bold text-slate-900 dark:text-white leading-none">
-                O&M AI Assistant
+                O&M Assistant
               </span>
               <span className="text-[9px] text-blue-500 font-bold uppercase tracking-widest mt-1">
-                AI Powered Audit
+                Ready to Assist
               </span>
             </div>
           </div>
@@ -236,7 +241,6 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
           </button>
         </div>
 
-        {/* Messages Container */}
         <div
           ref={scrollRef}
           className="flex-1 px-5 py-6 overflow-y-auto space-y-8 no-scrollbar overflow-x-hidden"
@@ -275,12 +279,11 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
           {loading && (
             <div className="flex items-center gap-4 text-slate-400 text-[11px] px-14 font-bold uppercase tracking-widest">
               <Loader2 className="animate-spin text-[#4F6EF7]" size={16} />
-              Reviewing documents...
+              Searching O&M Cloud...
             </div>
           )}
         </div>
 
-        {/* Input Area */}
         <div className="p-5 border-t border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-black/20 flex-shrink-0">
           <div className="relative">
             <input
@@ -288,7 +291,7 @@ export default function ChatDrawer({ isOpen, setIsOpen, onOpenDoc, apiBase }) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSend()}
-              placeholder="Ask about O&M gaps..."
+              placeholder="Ask a technical question..."
               className="w-full pl-5 pr-14 py-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl outline-none focus:ring-2 focus:ring-[#4F6EF7]/50 transition-all text-sm dark:text-white"
             />
             <button
