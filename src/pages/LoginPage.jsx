@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Eye, EyeOff } from "lucide-react"; // Real icons, no emojis
+import { Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage({ onLogin, error, isDarkMode }) {
   const [email, setEmail] = useState("");
@@ -11,9 +11,11 @@ export default function LoginPage({ onLogin, error, isDarkMode }) {
     e.preventDefault();
     setLocalError("");
 
-    // Validation: Check if it's virtualviewing.com
+    // Professional Validation
     if (!email.toLowerCase().endsWith("@virtualviewing.com")) {
-      setLocalError("Access Denied: Only @virtualviewing.com emails allowed.");
+      setLocalError(
+        "Access Denied: Only @virtualviewing.com accounts are authorized."
+      );
       return;
     }
 
@@ -94,7 +96,11 @@ export default function LoginPage({ onLogin, error, isDarkMode }) {
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-500 transition-colors"
               >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                {showPassword ? (
+                  <EyeOff size={20} strokeWidth={2} />
+                ) : (
+                  <Eye size={20} strokeWidth={2} />
+                )}
               </button>
             </div>
           </div>
