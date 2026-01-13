@@ -113,33 +113,25 @@ export default function App() {
   const handleOpenPreview = (fileOrId) => {
     let fileData;
 
-    // Check if the chat sent just a string (ID) instead of a full object
-    if (typeof fileOrId === "string") {
-      // Find the existing file object in your state so the drawer has the metadata (size, date, etc.)
-      fileData = files.find(
-        (f) =>
-          f.document_id === fileOrId ||
-          f.filename === fileOrId ||
-          f.id === fileOrId
-      );
-
-      // If we can't find the full object, create a minimal one so it still opens
-      if (!fileData) {
-        fileData = {
-          document_id: fileOrId,
-          filename: fileOrId.split("/").pop(),
-        };
-      }
-    } else {
+    // 1. If it's already an object (All Files / Asset Details), use it immediately.
+    // This restores the speed to your other pages.
+    if (fileOrId && typeof fileOrId === "object" && fileOrId.document_id) {
       fileData = fileOrId;
     }
+    // 2. If it's a string (from Chat), do a quick lookup.
+    else if (typeof fileOrId === "string") {
+      fileData = files.find((f) => f.document_id === fileOrId) || {
+        document_id: fileOrId,
+        filename: fileOrId.split("/").pop(),
+      };
+    }
+
+    if (!fileData) return;
 
     const docId = fileData.document_id || fileData.id;
-
     setSelectedDoc({
       ...fileData,
       id: docId,
-      // This URL construction is what the iframe in DocumentPreviewDrawer uses
       previewUrl: `${API_BASE_URL}/preview/${encodeURIComponent(docId)}`,
     });
   };
