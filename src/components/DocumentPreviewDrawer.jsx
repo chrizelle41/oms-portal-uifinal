@@ -1,13 +1,5 @@
 import React, { useState } from "react";
-import {
-  X,
-  Database,
-  User,
-  Calendar,
-  Info,
-  FileText,
-  Download,
-} from "lucide-react";
+import { X, Database, User, Calendar, Info, FileText } from "lucide-react";
 
 export default function DocumentPreviewDrawer({
   document,
@@ -25,10 +17,10 @@ export default function DocumentPreviewDrawer({
       : "https://oms-portal4-1.onrender.com";
 
   // --- DATA NORMALIZATION ---
-  // Ensure we capture the ID regardless of whether the backend sends 'id' or 'document_id'
+  // Captures the ID whether the backend sends 'id' or 'document_id'
   const docId = document.document_id || document.id;
 
-  // Ensure we have a display name
+  // Ensures we have a display name
   const displayName = document.filename || document.name || "Unknown Document";
 
   // Safeguard the URL with encoding for folders/special characters
@@ -68,16 +60,6 @@ export default function DocumentPreviewDrawer({
             </div>
 
             <div className="flex items-center gap-3">
-              <a
-                href={previewUrl}
-                download
-                target="_blank"
-                rel="noreferrer"
-                className="p-2.5 rounded-xl bg-slate-500/10 text-slate-400 hover:text-[#4F6EF7] transition-colors"
-                title="Download File"
-              >
-                <Download size={20} />
-              </a>
               <span className="px-4 py-1.5 rounded-full bg-[#4F6EF7] text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-500/20">
                 {document.system || document.cat || "General"}
               </span>
@@ -93,7 +75,7 @@ export default function DocumentPreviewDrawer({
             <div className="w-full h-full max-w-5xl shadow-2xl bg-white rounded-2xl overflow-hidden border border-slate-200 dark:border-white/5">
               {docId ? (
                 <iframe
-                  key={docId} // Using docId as key forces refresh when switching files
+                  key={docId} // Forces iframe refresh on file switch
                   src={previewUrl}
                   title="Document Preview"
                   className="w-full h-full border-none"
