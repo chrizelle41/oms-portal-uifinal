@@ -54,7 +54,7 @@ export default function LoginPage({ onLogin, error, isDarkMode }) {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-1">
             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
-              Work Email
+              Email
             </label>
             <input
               type="email"
