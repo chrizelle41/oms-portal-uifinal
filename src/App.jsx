@@ -18,17 +18,21 @@ import AllFilesPage from "./pages/AllFilesPage";
 import PortfolioPage from "./pages/PortfolioPage";
 import AssetDetailsPage from "./pages/AssetDetailsPage";
 
-/**
- * CONFIGURATION:
- * Switches between local development and your live Render backend.
- * Ensure your backend on Render is named 'oms-portal4'.
- */
 const API_BASE_URL =
   window.location.hostname === "localhost"
     ? "http://localhost:8000"
     : "https://oms-portal4-1.onrender.com";
 
 export default function App() {
+  // --- AUTH STATE ---
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false); // New: Toggle for visibility
+  const [loginError, setLoginError] = useState("");
+
+  // --- APP STATE ---
   const [files, setFiles] = useState([]);
   const [portfolioData, setPortfolioData] = useState({
     stats: { companies: 0, properties: 0, docs: 0 },
@@ -39,11 +43,18 @@ export default function App() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [globalSearch, setGlobalSearch] = useState("");
-
-  // --- GLOBAL PREVIEW STATE ---
   const [selectedDoc, setSelectedDoc] = useState(null);
 
-  // Theme Logic
+  // 1. Check Authentication on Load
+  useEffect(() => {
+    const session = localStorage.getItem("vv_session");
+    if (session === "active") {
+      setIsAuthenticated(true);
+    }
+    setAuthLoading(false);
+  }, []);
+
+  // 2. Theme Logic
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add("dark");
@@ -52,8 +63,10 @@ export default function App() {
     }
   }, [isDarkMode]);
 
-  // Data Loading Logic
+  // 3. Data Fetching (Only runs if authenticated)
   useEffect(() => {
+    if (!isAuthenticated) return;
+
     const fetchData = async () => {
       setLoading(true);
       try {
@@ -61,49 +74,73 @@ export default function App() {
           fetch(`${API_BASE_URL}/files`),
           fetch(`${API_BASE_URL}/portfolio`),
         ]);
-
-        if (!filesRes.ok || !portfolioRes.ok)
-          throw new Error("Server responded with error");
-
         const filesData = await filesRes.json();
         const resData = await portfolioRes.json();
 
         setFiles(filesData);
-
-        const initializedAssets = (resData.assets || []).map((a) => ({
-          ...a,
-          isFavorite: false,
-          status: a.status || "active",
-          type: a.type || "Commercial use",
-        }));
-
         setPortfolioData({
           stats: resData.stats || { companies: 0, properties: 0, docs: 0 },
-          assets: initializedAssets,
+          assets: (resData.assets || []).map((a) => ({
+            ...a,
+            isFavorite: false,
+          })),
         });
       } catch (err) {
-        console.error("Critical: Database sync failed:", err);
+        console.error("Database sync failed:", err);
       } finally {
         setLoading(false);
       }
     };
     fetchData();
-  }, []);
+  }, [isAuthenticated]);
 
-  // --- SHARED PREVIEW LOGIC ---
+  // --- AUTH HANDLERS ---
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoginError("");
+    try {
+      const response = await fetch(`${API_BASE_URL}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: loginEmail, password: loginPassword }),
+      });
+      const data = await response.json();
+
+      if (response.ok && data.status === "success") {
+        setIsAuthenticated(true);
+        localStorage.setItem("vv_session", "active");
+      } else {
+        // detail comes from FastAPI HTTPException
+        setLoginError(data.detail || "Access Denied");
+      }
+    } catch (err) {
+      setLoginError("Server unreachable. Check backend connection.");
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("vv_session");
+    setIsAuthenticated(false);
+    // Clear sensitive data from state on logout
+    setFiles([]);
+    setPortfolioData({
+      stats: { companies: 0, properties: 0, docs: 0 },
+      assets: [],
+    });
+  };
+
+  // --- PREVIEW LOGIC ---
   const handleOpenPreview = (file) => {
+    const docId = file.id || file.document_id;
     setSelectedDoc({
-      id: file.document_id,
-      name: file.filename,
-      cat: file.system || "Document",
-      doc_type: file.document_type || "General",
+      id: docId,
+      name: file.name || file.filename,
+      cat: file.cat || file.system || "Document",
+      doc_type: file.doc_type || file.document_type || "General",
       size: file.size || "N/A",
-      user: file.user || "System",
       date: file.date || "Verified",
-      asset_hint: file.asset_hint || "",
       isLocal: false,
-      // Pass the API_BASE_URL to the drawer for PDF fetching
-      previewUrl: `${API_BASE_URL}/preview/${file.document_id}`,
+      previewUrl: `${API_BASE_URL}/preview/${encodeURIComponent(docId)}`,
     });
   };
 
@@ -112,22 +149,12 @@ export default function App() {
       const response = await fetch(`${API_BASE_URL}/files`);
       const allFiles = await response.json();
       const cleanTitle = docTitle.toLowerCase().trim();
-
-      const match = allFiles.find((f) => {
-        const fname = f.filename.toLowerCase();
-        return (
-          fname.includes(cleanTitle) ||
-          cleanTitle.includes(fname.replace(".pdf", ""))
-        );
-      });
-
-      if (match) {
-        handleOpenPreview(match);
-      } else {
-        console.error("Chat matching failed for:", docTitle);
-      }
+      const match = allFiles.find((f) =>
+        f.filename.toLowerCase().includes(cleanTitle)
+      );
+      if (match) handleOpenPreview(match);
     } catch (err) {
-      console.error("Chat trigger error:", err);
+      console.error(err);
     }
   };
 
@@ -141,10 +168,113 @@ export default function App() {
     [files]
   );
 
+  if (authLoading) return null;
+
+  // --- LOGIN UI ---
+  if (!isAuthenticated) {
+    return (
+      <div
+        className={`min-h-screen flex items-center justify-center p-6 ${
+          isDarkMode ? "bg-[#030712]" : "bg-slate-50"
+        }`}
+      >
+        <div
+          className={`w-full max-w-md p-10 rounded-[2.5rem] shadow-2xl transition-all ${
+            isDarkMode
+              ? "bg-slate-900 border border-white/5"
+              : "bg-white border border-slate-100"
+          }`}
+        >
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-blue-600/10 mb-6 group">
+              <span className="text-3xl group-hover:scale-110 transition-transform cursor-default">
+                🏢
+              </span>
+            </div>
+            <h1
+              className={`text-2xl font-black tracking-tight uppercase ${
+                isDarkMode ? "text-white" : "text-slate-900"
+              }`}
+            >
+              Virtual Viewing
+            </h1>
+            <p className="text-slate-500 text-sm mt-2 font-medium">
+              O&M Operations Portal
+            </p>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                Work Email
+              </label>
+              <input
+                type="email"
+                required
+                className={`w-full p-4 mt-1 rounded-2xl outline-none transition-all text-sm border ${
+                  isDarkMode
+                    ? "bg-slate-800 border-white/5 text-white focus:border-blue-500"
+                    : "bg-slate-50 border-slate-100 focus:border-blue-500"
+                }`}
+                placeholder="name@virtualviewing.com"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+              />
+            </div>
+            <div className="relative">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  className={`w-full p-4 mt-1 rounded-2xl outline-none transition-all text-sm border ${
+                    isDarkMode
+                      ? "bg-slate-800 border-white/5 text-white focus:border-blue-500"
+                      : "bg-slate-50 border-slate-100 focus:border-blue-500"
+                  }`}
+                  placeholder="••••••••"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 mt-0.5 text-slate-400 hover:text-blue-500 transition-colors"
+                >
+                  {showPassword ? "🙈" : "👁️"}
+                </button>
+              </div>
+            </div>
+
+            {loginError && (
+              <div className="bg-red-500/10 text-red-500 text-xs font-bold p-4 rounded-2xl text-center border border-red-500/20">
+                {loginError}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold shadow-xl shadow-blue-500/20 transition-all active:scale-[0.98]"
+            >
+              Sign In
+            </button>
+          </form>
+
+          <p className="text-center text-slate-500 text-[10px] mt-10 uppercase tracking-widest font-bold">
+            Internal Demo Access Only
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // --- DASHBOARD UI ---
   return (
     <Router>
       <div
-        className={`flex h-screen w-full transition-colors duration-300 font-sans relative ${
+        className={`flex h-screen w-full font-sans relative ${
           isDarkMode
             ? "bg-[#030712] text-slate-200"
             : "bg-slate-50 text-slate-900"
@@ -159,7 +289,7 @@ export default function App() {
 
         <div className="flex-1 flex overflow-hidden relative">
           <main
-            className={`flex-1 flex flex-col min-w-0 relative z-10 transition-all duration-300 ease-in-out border-r ${
+            className={`flex-1 flex flex-col min-w-0 border-r ${
               isDarkMode ? "border-white/5" : "border-slate-200"
             }`}
           >
@@ -171,7 +301,7 @@ export default function App() {
               setSearchQuery={setGlobalSearch}
             />
 
-            <div className="flex-1 overflow-y-auto p-8 relative no-scrollbar">
+            <div className="flex-1 overflow-y-auto p-8 no-scrollbar">
               <Routes>
                 <Route
                   path="/"
@@ -202,7 +332,7 @@ export default function App() {
                       setPortfolioData={setPortfolioData}
                       isDarkMode={isDarkMode}
                       onPreview={handleOpenPreview}
-                      apiBase={API_BASE_URL} // Passing API base for folder operations
+                      apiBase={API_BASE_URL}
                     />
                   }
                 />
@@ -214,7 +344,7 @@ export default function App() {
                       portfolioData={portfolioData}
                       setPortfolioData={setPortfolioData}
                       onPreview={handleOpenPreview}
-                      apiBase={API_BASE_URL} // Passing API base for asset operations
+                      apiBase={API_BASE_URL}
                     />
                   }
                 />
@@ -223,7 +353,7 @@ export default function App() {
           </main>
 
           <div
-            className={`transition-all duration-300 ease-in-out overflow-hidden border-l backdrop-blur-2xl ${
+            className={`transition-all duration-300 ease-in-out border-l backdrop-blur-2xl ${
               isAiOpen ? "w-96 opacity-100" : "w-0 opacity-0 border-none"
             } ${
               isDarkMode
@@ -235,12 +365,11 @@ export default function App() {
               isOpen={isAiOpen}
               setIsOpen={setIsAiOpen}
               onOpenDoc={handleOpenDocFromChat}
-              apiBase={API_BASE_URL} // Pass this to ChatDrawer so it can call /ask
+              apiBase={API_BASE_URL}
             />
           </div>
         </div>
 
-        {/* --- GLOBAL PREVIEW DRAWER --- */}
         {selectedDoc && (
           <DocumentPreviewDrawer
             document={selectedDoc}
@@ -248,6 +377,14 @@ export default function App() {
             isDarkMode={isDarkMode}
           />
         )}
+
+        {/* Floating Logout for Demo purposes */}
+        <button
+          onClick={handleLogout}
+          className="fixed bottom-4 left-4 z-50 p-2 text-[10px] font-black uppercase text-slate-500 hover:text-red-500 transition-colors"
+        >
+          Logout Session
+        </button>
       </div>
     </Router>
   );
