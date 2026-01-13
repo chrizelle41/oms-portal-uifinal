@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Eye, EyeOff, Building2 } from "lucide-react";
+import { Eye, EyeOff, Building2, ShieldAlert } from "lucide-react";
 
 export default function LoginPage({ onLogin, error, isDarkMode }) {
   const [email, setEmail] = useState("");
@@ -11,9 +11,11 @@ export default function LoginPage({ onLogin, error, isDarkMode }) {
     e.preventDefault();
     setLocalError("");
 
-    // Domain Validation
+    // Professional Validation
     if (!email.toLowerCase().endsWith("@virtualviewing.com")) {
-      setLocalError("Access Denied: Use your @virtualviewing.com email.");
+      setLocalError(
+        "Access Denied: Use the correct @virtualviewing.com email."
+      );
       return;
     }
 
@@ -35,10 +37,9 @@ export default function LoginPage({ onLogin, error, isDarkMode }) {
             : "bg-white border border-slate-100"
         }`}
       >
-        {/* Logo Section */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-blue-600/10 mb-6">
-            <Building2 className="text-blue-600" size={32} />
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-blue-600/10 mb-6 group">
+            <Building2 size={32} className="text-blue-500" />
           </div>
           <h1
             className={`text-2xl font-black tracking-tight uppercase ${
@@ -60,7 +61,7 @@ export default function LoginPage({ onLogin, error, isDarkMode }) {
             <input
               type="email"
               required
-              className={`w-full p-4 rounded-2xl outline-none transition-all text-sm border ${
+              className={`w-full p-4 mt-1 rounded-2xl outline-none transition-all text-sm border ${
                 isDarkMode
                   ? "bg-slate-800 border-white/5 text-white focus:border-blue-500"
                   : "bg-slate-50 border-slate-100 focus:border-blue-500"
@@ -79,7 +80,7 @@ export default function LoginPage({ onLogin, error, isDarkMode }) {
               <input
                 type={showPassword ? "text" : "password"}
                 required
-                className={`w-full p-4 rounded-2xl outline-none transition-all text-sm border ${
+                className={`w-full p-4 mt-1 rounded-2xl outline-none transition-all text-sm border ${
                   isDarkMode
                     ? "bg-slate-800 border-white/5 text-white focus:border-blue-500"
                     : "bg-slate-50 border-slate-100 focus:border-blue-500"
@@ -91,7 +92,7 @@ export default function LoginPage({ onLogin, error, isDarkMode }) {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-500 transition-colors"
+                className="absolute right-4 top-1/2 -translate-y-1/2 mt-0.5 text-slate-400 hover:text-blue-500 transition-colors"
               >
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
@@ -99,8 +100,9 @@ export default function LoginPage({ onLogin, error, isDarkMode }) {
           </div>
 
           {displayError && (
-            <div className="bg-red-500/10 text-red-500 text-[11px] font-bold p-4 rounded-2xl text-center border border-red-500/20">
-              {displayError}
+            <div className="flex items-center gap-2 bg-red-500/10 text-red-500 text-[11px] font-bold p-4 rounded-2xl border border-red-500/20">
+              <ShieldAlert size={16} />
+              <span>{displayError}</span>
             </div>
           )}
 
@@ -108,15 +110,9 @@ export default function LoginPage({ onLogin, error, isDarkMode }) {
             type="submit"
             className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold shadow-xl shadow-blue-500/20 transition-all active:scale-[0.98]"
           >
-            Enter Dashboard
+            Sign In
           </button>
         </form>
-
-        <div className="mt-10 pt-8 border-t border-slate-100/5 text-center">
-          <p className="text-slate-500 text-[10px] uppercase tracking-[0.2em] font-bold">
-            Authorized Personnel Only
-          </p>
-        </div>
       </div>
     </div>
   );
