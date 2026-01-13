@@ -285,6 +285,7 @@ export default function App() {
           setIsCollapsed={setIsCollapsed}
           isDarkMode={isDarkMode}
           setIsDarkMode={setIsDarkMode}
+          onLogout={handleLogout}
         />
 
         <div className="flex-1 flex overflow-hidden relative">

@@ -1,14 +1,26 @@
 import React, { useState } from "react";
+import { Eye, EyeOff } from "lucide-react"; // Real icons, no emojis
 
 export default function LoginPage({ onLogin, error, isDarkMode }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [localError, setLocalError] = useState("");
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setLocalError("");
+
+    // Validation: Check if it's virtualviewing.com
+    if (!email.toLowerCase().endsWith("@virtualviewing.com")) {
+      setLocalError("Access Denied: Only @virtualviewing.com emails allowed.");
+      return;
+    }
+
     onLogin(email, password);
   };
+
+  const displayError = localError || error;
 
   return (
     <div
@@ -23,7 +35,6 @@ export default function LoginPage({ onLogin, error, isDarkMode }) {
             : "bg-white border border-slate-100"
         }`}
       >
-        {/* Branding Area */}
         <div className="text-center mb-10">
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-blue-600/10 mb-6 group">
             <span className="text-3xl group-hover:scale-110 transition-transform cursor-default">
@@ -42,7 +53,6 @@ export default function LoginPage({ onLogin, error, isDarkMode }) {
           </p>
         </div>
 
-        {/* Form Area */}
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-1">
             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
@@ -51,11 +61,10 @@ export default function LoginPage({ onLogin, error, isDarkMode }) {
             <input
               type="email"
               required
-              autoComplete="email"
               className={`w-full p-4 rounded-2xl outline-none transition-all text-sm border ${
                 isDarkMode
-                  ? "bg-slate-800 border-white/5 text-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
-                  : "bg-slate-50 border-slate-100 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5"
+                  ? "bg-slate-800 border-white/5 text-white focus:border-blue-500"
+                  : "bg-slate-50 border-slate-100 focus:border-blue-500"
               }`}
               placeholder="name@virtualviewing.com"
               value={email}
@@ -73,33 +82,32 @@ export default function LoginPage({ onLogin, error, isDarkMode }) {
                 required
                 className={`w-full p-4 rounded-2xl outline-none transition-all text-sm border ${
                   isDarkMode
-                    ? "bg-slate-800 border-white/5 text-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
-                    : "bg-slate-50 border-slate-100 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5"
+                    ? "bg-slate-800 border-white/5 text-white focus:border-blue-500"
+                    : "bg-slate-50 border-slate-100 focus:border-blue-500"
                 }`}
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
-              {/* Show/Hide Toggle */}
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-500 transition-colors"
               >
-                {showPassword ? "🙈" : "👁️"}
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
           </div>
 
-          {error && (
-            <div className="bg-red-500/10 text-red-500 text-[11px] font-bold p-4 rounded-2xl text-center border border-red-500/20 animate-pulse">
-              {error}
+          {displayError && (
+            <div className="bg-red-500/10 text-red-500 text-[11px] font-bold p-4 rounded-2xl text-center border border-red-500/20 animate-in fade-in zoom-in duration-200">
+              {displayError}
             </div>
           )}
 
           <button
             type="submit"
-            className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold shadow-xl shadow-blue-500/20 transition-all active:scale-[0.98] mt-2"
+            className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold shadow-xl shadow-blue-500/20 transition-all active:scale-[0.98]"
           >
             Enter Dashboard
           </button>

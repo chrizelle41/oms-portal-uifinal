@@ -12,7 +12,12 @@ import {
   User,
 } from "lucide-react";
 
-export default function Sidebar({ isCollapsed, setIsCollapsed, isDarkMode }) {
+export default function Sidebar({
+  isCollapsed,
+  setIsCollapsed,
+  isDarkMode,
+  onLogout,
+}) {
   const [showAccountMenu, setShowAccountMenu] = useState(false);
 
   const menuItems = [
@@ -21,16 +26,8 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isDarkMode }) {
       path: "/dashboard",
       icon: <LayoutDashboard size={22} />,
     },
-    {
-      name: "Portfolio",
-      path: "/portfolio",
-      icon: <Briefcase size={22} />,
-    },
-    {
-      name: "All Files",
-      path: "/all-files",
-      icon: <Folder size={22} />,
-    },
+    { name: "Portfolio", path: "/portfolio", icon: <Briefcase size={22} /> },
+    { name: "All Files", path: "/all-files", icon: <Folder size={22} /> },
   ];
 
   return (
@@ -75,7 +72,6 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isDarkMode }) {
           <NavLink
             key={item.path}
             to={item.path}
-            title={isCollapsed ? item.name : ""}
             className={({ isActive }) => `
               flex items-center rounded-2xl transition-all duration-200 group
               ${
@@ -115,7 +111,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isDarkMode }) {
             <User size={18} />
           </div>
 
-          {!isCollapsed && (
+          {!isCollapsed ? (
             <>
               <div className="flex-1 min-w-0">
                 <p
@@ -123,13 +119,12 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isDarkMode }) {
                     isDarkMode ? "text-white" : "text-slate-900"
                   }`}
                 >
-                  User
+                  Admin
                 </p>
                 <p className="text-[10px] text-slate-500 truncate">
-                  User@virtualviewing.com
+                  virtualviewing.com
                 </p>
               </div>
-
               <button
                 onClick={() => setShowAccountMenu(!showAccountMenu)}
                 className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-500/10"
@@ -137,6 +132,15 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isDarkMode }) {
                 <MoreVertical size={16} />
               </button>
             </>
+          ) : (
+            /* Logout Shortcut when Collapsed */
+            <button
+              onClick={onLogout}
+              title="Logout"
+              className="absolute -top-12 p-3 text-slate-400 hover:text-red-500 transition-colors"
+            >
+              <LogOut size={20} />
+            </button>
           )}
         </div>
 
@@ -158,9 +162,12 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isDarkMode }) {
                 isDarkMode ? "bg-white/5" : "bg-slate-100"
               }`}
             />
-            <button className="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-bold text-red-500 hover:bg-red-500/5 rounded-xl transition-colors">
+            <button
+              onClick={onLogout}
+              className="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-bold text-red-500 hover:bg-red-500/5 rounded-xl transition-colors"
+            >
               <LogOut size={16} />
-              <span>Logout</span>
+              <span>Logout Session</span>
             </button>
           </div>
         )}
