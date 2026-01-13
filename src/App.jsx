@@ -96,14 +96,15 @@ export default function App() {
     fetchData();
   }, [isAuthenticated]);
 
-  // --- AUTH HANDLERS ---
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoginError("");
 
-    // Validation: Domain Check
+    // 1. FRONTEND DOMAIN VALIDATION
     if (!loginEmail.toLowerCase().endsWith("@virtualviewing.com")) {
-      setLoginError("Access Denied: Use your @virtualviewing.com email.");
+      setLoginError(
+        "Access Denied: Use the correct @virtualviewing.com email."
+      );
       return;
     }
 
@@ -113,16 +114,24 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: loginEmail, password: loginPassword }),
       });
+
       const data = await response.json();
 
       if (response.ok && data.status === "success") {
         setIsAuthenticated(true);
         localStorage.setItem("vv_session", "active");
       } else {
-        setLoginError(data.detail || "Invalid Credentials");
+        // 2. BACKEND PASSWORD VALIDATION
+        // If server returns 401 or 403, show your specific message
+        setLoginError(
+          "Access Denied: Use the correct email and password. Invalid credentials."
+        );
       }
     } catch (err) {
-      setLoginError("Server unreachable. Check backend connection.");
+      // This usually happens if the server is still "waking up" on Render
+      setLoginError(
+        "Server is starting up. Please wait 30 seconds and try again."
+      );
     }
   };
 
